@@ -5,6 +5,8 @@
 void systemInit(s2System* sys, unsigned int memCapacity) {
   coreInit(&sys->core);
   cpuInit(&sys->cpu,&sys->core);
+  vuInit(&sys->vu,65536);
+  suInit(&sys->su,8192,false);
 
   sys->memCapacity=memCapacity;
   sys->memory=malloc(memCapacity);
@@ -29,15 +31,18 @@ void systemInit(s2System* sys, unsigned int memCapacity) {
 
 void systemAdvance(s2System* sys, unsigned int cycles) {
   do {
-    if (coreClock(&sys->core)) {
-      cpuClock(&sys->cpu);
-    }
+    coreClock(&sys->core);
+    sys->vuOutput=vuClock(&sys->vu);
+    if (sys->core.clockCPU) cpuClock(&sys->cpu);
+    if (sys->core.clockSU) suClock(&sys->su,&sys->suOutL,&sys->suOutR);
   } while (--cycles);
 }
 
 void systemReset(s2System* sys) {
   coreReset(&sys->core);
   cpuReset(&sys->cpu);
+  vuReset(&sys->vu,0);
+  suReset(&sys->su);
 }
 
 void systemQuit(s2System* sys) {

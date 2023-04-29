@@ -7,14 +7,21 @@ extern "C" {
 
 #include "cpu.h"
 #include "core.h"
+#include "video.h"
+#include "sound.h"
 
 #define S2EMU_VERSION "dev0"
 
 typedef struct {
   s2CPU cpu;
   s2Core core;
+  s2VideoUnit vu;
+  s2SoundUnit su;
+
   unsigned char* memory;
   unsigned int memCapacity;
+  unsigned short vuOutput;
+  short suOutL, suOutR;
 } s2System;
 
 void systemInit(s2System* sys, unsigned int memCapacity);

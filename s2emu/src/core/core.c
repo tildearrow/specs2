@@ -35,7 +35,11 @@ void coreInit(s2Core* core) {
 void coreReset(s2Core* core) {
   core->irq=0;
   core->ex=0;
-  core->clock=0;
+  core->cpuClock=0;
+  core->suClock=0;
+
+  core->clockCPU=false;
+  core->clockSU=false;
 
   // state
   core->biosPos=0;
@@ -51,12 +55,19 @@ void coreSetBIOS(s2Core* core, unsigned char* src, unsigned short len) {
   core->biosLen=len;
 }
 
-bool coreClock(s2Core* core) {
-  if (++core->clock>=5) {
-    core->clock=0;
-    return true;
+void coreClock(s2Core* core) {
+  if (++core->cpuClock>=5) {
+    core->cpuClock=0;
+    core->clockCPU=true;
+  } else {
+    core->clockCPU=false;
   }
-  return false;
+  if (++core->suClock>=100) {
+    core->suClock=0;
+    core->clockSU=true;
+  } else {
+    core->clockSU=false;
+  }
 }
 
 bool coreReadCtrl(s2Core* core, unsigned int addr, unsigned char* out) {

@@ -10,13 +10,17 @@ typedef struct {
   unsigned short biosLen;
   unsigned char irq;
   unsigned char ex;
-  unsigned char clock;
+  unsigned char cpuClock;
+  unsigned char suClock;
 
   unsigned char isl[256];
   unsigned short pageTable[16384];
 
   // state
   unsigned short biosPos;
+
+  bool clockCPU;
+  bool clockSU;
 } s2Core;
 
 void coreInit(s2Core* core);
@@ -25,7 +29,7 @@ void coreReset(s2Core* core);
 void coreSetMemory(s2Core* core, unsigned char* memory, unsigned int capacity);
 void coreSetBIOS(s2Core* core, unsigned char* src, unsigned short len);
 
-bool coreClock(s2Core* core);
+void coreClock(s2Core* core);
 
 bool coreReadCtrl(s2Core* core, unsigned int addr, unsigned char* out);
 bool coreWriteCtrl(s2Core* core, unsigned int addr, unsigned char val);
