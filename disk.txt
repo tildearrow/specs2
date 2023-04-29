@@ -1,0 +1,7 @@
+---disk format---
+
+the original disk used 80 tracks, 16 sectors per track, and 256-byte sectors.
+
+512-byte sector disks were made available later.
+
+

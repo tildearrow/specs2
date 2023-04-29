@@ -1,0 +1,24 @@
+# memory map
+
+this is the memory map in unpaged state.
+
+addr    | meaning
+--------|-------------------
+$000000 | system RAM, up to 15.75MB
+$fc0000 | sound unit
+$fd0000 | video unit
+$fe0000 | character unit
+$ff0000 | core
+$ffffff | map density register
+        | - writing to this register changes the map density which sets
+        |   how many 64KB blocks will be available for hardware
+        | - by using this setting it is possible to have access to 16MB
+        |   of memory at the cost of being unable to access hardware
+        | - this register is set to $fc at power on
+        | - this register is hardwired to the core, and is always available
+
+---boot routine---
+upon powering the system on, a tiny loader (initial system loader) is available at $fffe00, which is the initial value of PC in the CPU.
+the routine copies the system BIOS ROM to $8000 (up to 32KB, but could be bigger), and jumps there.
+the BIOS initializes the hardware and boots from the first available disk.
+if the disk is bootable, it copies its 2048 bytes boot block to $800 and jumps there.

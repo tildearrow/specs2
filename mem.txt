@@ -1,0 +1,187 @@
+# core
+
+the core chip features a memory management unit, a fast memory copier/filler, timers, RTC and I/O.
+
+the first 32KB are for page tables, of which 8KB are taken by the kernel (an application in extended mode).
+the user then can run up to 24 processes without slowdowns.
+
+the next 256 bytes are for the main registers:
+
+addr | meaning
+-----|--------------
+ $00 | PAGE current page (0-1024)
+     | - page 0 maps to the kernel
+ $02 | PGCACHE cached pages (3)
+ $0e | EX exception code
+ $0f | IRQ IRQ number
+ $10 | TIM0-TIM7 32-bit timers (set)
+     | - there are 8 timers
+     | - NOTE: timer 7 is reserved for the system
+ $30 | TIMS0-TIMS7 timer flags (8):
+     | - bit 2: loop
+     | - bit 1: generate interrupt
+     | - bit 0: active
+ $38 | VOUT select video output
+     | - 0: character unit
+     | - 1: video unit
+ $3f | ENGAGE switch paging mode:
+     | - at power on, the system starts in
+     |   unpaged state
+     | - writing to this register immediately switches to paged state
+ $40 | TIMR0-TIMR7 32-bit timers (read)
+ $60 | RTCREAD real-time clock:
+     | - clocked at 24576Hz
+     | - reading may take some cycles
+     | - therefore it is recommended to
+     |   use the RTC interrupt for reading
+     |   instead
+     | - the structure is as follows:
+     |   - a 48-bit unix timestamp
+     |     (yes, we are future-proof)
+     |   - a 16-bit counter (<<1)
+ $68 | RTCTIM RTC interrupt, as 24-bit number
+ $6b | RTCINT RTC interrupt flags:
+     | - bit 1: loop
+     | - bit 0: active
+ $7c | MIN monitor input
+ $7d | MOUT monitor output
+     | - write to debug monitor.
+     | - on read, bit 7 represents whether MIN has data.
+ $7e | BEEP beeper write
+     | - bit 0-13: frequency
+     | - bit 14-15: volume
+ $80 | CPYSRC fast memory copier/filler (source/fill value)
+ $84 | CPYDST destination
+ $88 | CPYLEN amount (16-bit)
+ $8a | CPYFLG memory copier/filler flags
+     | - bit 5: stream mode:
+     |   - when stream mode is on, destination does not change
+     | - bit 4: mask mode:
+     |   - when mask mode is on, zero values are not copied
+     | - bit 2-3: fill/copy size:
+     |   - 0: fill with zero (8-bit copy)
+     |   - 1: 8-bit (half speed)
+     |   - 2: 16-bit (full-speed)
+     |   - 3: 32-bit (16-bit copy)
+     | - bit 1: mode (1: fill)
+     | - bit 0: start!
+ $8b | CPYSTAT memory copier/filler status
+     | - bit 0: busy
+ $8c | CPYPER memory copier/filler wait time (16-bit)
+ $90 | PTMODE de-9 port mode bits
+     | - 0: serial
+     | - 1: raw
+ $91 | PTLATCH de-9 port latch
+ $92 | PTSTAT parallel status
+ $93 | PARINT parallel interrupts
+ $94 | PT0 de-9 port 0 digital data
+ $95 | PT1 de-9 port 1 digital data
+ $96 | PT2 de-9 port 2 digital data
+ $97 | PT3 de-9 port 3 digital data
+ $98 | ANAP0 read analog from port 0
+ $99 | ANAP1 read analog from port 1
+ $9a | ANAP2 read analog from port 2
+ $9b | ANAP3 read analog from port 3
+ $9e | BIOSSTAT read BIOS ROM data status
+     | - $00: no data/busy
+     | - $01: data available
+     | - $ff: end of data
+ $9f | BIOSREAD read BIOS ROM data
+     | - read until BIOSSTAT returns $ff
+ $a0 | PARREAD parallel read 0
+ $a1 | parallel read 1
+ $a2 | parallel read 2
+ $a3 | parallel read 3
+ $a4 | parallel read 4
+ $a5 | parallel read 5
+ $a6 | parallel read 6
+ $a7 | parallel read 7
+ $a8 | PARWRITE parallel write 0
+ $a9 | parallel write 1
+ $aa | parallel write 2
+ $ab | parallel write 3
+ $ac | parallel write 4
+ $ad | parallel write 5
+ $ae | parallel write 6
+ $af | parallel write 7
+ $b0 | PARSTAT parallel status 0
+ $b1 | parallel status 1
+ $b2 | parallel status 2
+ $b3 | parallel status 3
+ $b4 | parallel status 4
+ $b5 | parallel status 5
+ $b6 | parallel status 6
+ $b7 | parallel status 7
+ $c0 | EXTBUF 64-byte expansion port space
+
+then at $fe00 there is the initial system loader (ISL) on 256 bytes of mask ROM.
+this routine copies the BIOS ROM to RAM and jumps there.
+
+parallel status format:
+- bit 3: more data
+- bit 2: can read
+- bit 1: error
+- bit 0: ready
+
+the format of a page is:
+- bit 4-15: address
+- bit 3: unused (if this is the first page, extended mode)
+- bit 2: execute
+- bit 1: write
+- bit 0: read
+
+list of exception codes:
+
+id | description
+---|-------------------
+00 | unused
+01 | bus error
+02 | access violation
+ff | user exception
+   | (should not happen though)
+
+list of IRQ numbers:
+
+id | description
+---|-------------------
+00 | unused
+01 | software interrupt
+   | (should not happen though)
+02 | memory copy/fill done
+10 | timer 0
+11 | timer 1
+12 | timer 2
+13 | timer 3
+14 | timer 4
+15 | timer 5
+16 | timer 6
+17 | timer 7
+18 | real-time clock
+20 | video, vertical blank
+21 | video, vertical sync
+22 | video, scanline hit
+30 | input, keyboard
+40 | parallel 0 IRQ
+41 | parallel 1 IRQ
+42 | parallel 2 IRQ
+43 | parallel 3 IRQ
+44 | parallel 4 IRQ
+45 | parallel 5 IRQ
+46 | parallel 6 IRQ
+47 | parallel 7 IRQ
+48 | expansion IRQ
+
+the core chip has several buses:
+- one 64-bit bus for instruction data (24-bit address)
+- one 32-bit bus for processor I/O data (24-bit address)
+- one 32-bit bus for the memory copier
+- one 16-bit bus for system I/O operations (including memory)
+
+the chip is clocked at the same rate as the video chip:
+- 29.75MHz (PAL)
+- 30.933MHz (NTSC)
+
+data transfer is done using time-division multiplexing:
+
+- instruction read takes 4 cycles
+- I/O takes 1 cycle for char/short and 2 cycles for int

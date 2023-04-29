@@ -1,0 +1,86 @@
+# box info
+
+there are 2 box editions: home and business.
+
+contents of home box:
+
+- the specs2 computer
+- a composite adapter and RF modulator
+- BNC to RCA cables for audio
+
+contents of business box:
+
+- the specs2 computer
+- BNC cables for Y/U/V video
+- BNC to RCA cables for audio
+- a composite adapter and RF modulator
+- a component adapter (basically a BNC to RCA converter)
+
+# hardware info
+
+there are many versions of the specs2 computer available, released by region.
+
+the only differences between versions are the initial value of the composite adapter signal type, the inclusion of an extra character ROM chip, the initial clock speed and TV system.
+
+the versions are:
+
+- A: europe
+- B: americas
+- C: brazil
+- D: SECAM region
+- E: japan (home)
+- F: japan (business)
+- G: china
+- H: korea
+
+default clock rate:
+
+- 5.95: A, D, G
+- 6.1866: B, C, E, F, H
+
+default refresh rate:
+
+- 60Hz: B, C, E, F, H
+- 50Hz: A, D, G
+
+composite adapter default TV system:
+
+- NTSC: B, E, F, H
+- PAL: A, C, D, G
+
+(D version also comes with a SECAM adapter)
+
+char chip:
+
+- standard: A, B, C, D
+- with kana: E
+- with kana+kanji ROM: F
+- chinese ROM: G
+- hangul: H
+
+# hardware revisions
+
+during the supposed lifespan of specs2, many revisions of the hardware were made.
+
+- r0: prototype, never released
+- r1: first public release
+  - main RAM: 1M
+  - sound chip RAM: 8K
+  - processor locked to master clock
+- r2: second release after the amiga
+  - main RAM: 2M
+  - sound chip RAM: 64K
+    (this revision mentions the PCM capability in the programmer's manual)
+  - processor locked to master clock
+- r3: third release
+  - main RAM: 2M home, 4M business
+  - sound chip RAM: 64K
+  - processor clocked independently
+    - as such this machine has a 12MHz processor, to combat the Unix workstations
+- r4: final release before specs3
+  - main RAM: 4M home, 8M business
+  - sound chip RAM: 64K
+  - processor locked to master clock
+    - but running at 1/2 the master clock
+    - as such, it runs at 14.875MHz or 15.45MHz
+  - this revision didn't sell well, due to its locked processor

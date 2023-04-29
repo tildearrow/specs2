@@ -1,0 +1,94 @@
+# character unit
+
+this chip provides text mode output.
+
+it has 32KB of memory.
+
+the first 24KB block contains the characters to be output (128x48 maximum), in the following format:
+
+addr | description
+-----|--------------------
+ $00 | character
+ $01 | color
+ $02 | background color
+ $03 | attributes:
+     | bit 2-6: select page (kanji only)
+     | bit 1: blink background
+     | bit 0: blink text
+
+there are a few special registers at the end of this block:
+
+addr | description
+-----|--------------------
+$5fe0| VCACNT line size
+     | - 800
+$5fe2| VCAHBL pre hblank size
+     | - 58
+$5fe3| VCAHBP post hblank size
+     | - 24
+$5fe4| VCABLU upper blanking lines
+     | - 23
+$5fe5| VCABLL lower blanking lines
+     | - 6 or 10
+     | - 16 or 8 lines are added for sync.
+$5fe6| VCAACT active size
+     | - 480 or 576
+$5fe8| VCHSY0 size of equalizing pulse/horizontal sync (low)
+     | - 70
+$5fe9| VCHSY1 size of frame sync pulse (high)
+     | - 140
+$5fea| VCHSZ0 size of equalizing pulse (high)
+     | - 882
+$5fec| VCHSZ1 size of sync pulse (low)
+     | - 812
+$5fee| VCTRL video control
+     | - bit 4: force blank
+     | - bit 3: half vertical mode
+     |   - set for TV compatibility.
+     | - bit 2: video mode
+     |   - 0: progressive
+     |   - 1: interlaced
+     | - bit 0-1: horizontal divider
+     |   - 0: 800
+     |   - 1: 400
+     |   - 2: ~267
+     |   - 3: 200
+     |   - only affects active area.
+$5fef| EXTSYN external sync control
+     | - bit 0: sync to video chip
+$5ff0| CURX cursor X
+$5ff1| CURY cursor Y
+$5ff2| TSIZEX text width
+$5ff3| TSIZEY text height
+$5ff4| TSCRX text offset X
+$5ff5| TSCRY text offset Y
+$5ffa| STATUS internal status (read-only):
+     | - bit 6: putchar advances cursor
+     | - bit 5: blink status
+     | - bit 0-4: blink counter
+$5ffa| FLAGS flags (write-only):
+     | - bit 1: character depth
+     |   - 0: monochrome
+     |   - 1: 3-tone
+     | - bit 0: character size
+     |   - 0: 8x16
+     |   - 1: 16x16 (monochrome only)
+$5ffc| CMD command: when written, the chip
+     |          can perform several
+     |          operations, listed:
+     | - $00: NOP nothing
+     | - $01: LF newline
+     | - $02: CLR clear screen
+     | - $03: CLC clear with color
+     | - $04: PCS putchar static
+     | - $05: PCA putchar advances cursor
+     | - $06: DEL backspace
+     | - $80: force vsync
+     | - $81: force hsync
+$5ffd| PUTCBK putchar background
+$5ffe| PUTCOL putchar color
+$5fff| PUTCHR putchar
+
+the last 8KB block contains the current font in two bit planes.
+
+an optional ROM (e.g. Kanji) may be added for expanding the character set.

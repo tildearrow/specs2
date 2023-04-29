@@ -1,0 +1,39 @@
+# program format
+
+the specs2 program format is an executable format that is used in the BIOS and taRT, the Unix-like real-time operating system for it.
+
+# the format header
+
+addr | meaning
+-----|----------------------
+ $00 | "PROG" magic
+ $04 | this is $00
+ $05 | format type
+     | - 0: invalid
+     | - 1: executable program
+     | - 2: library
+     | - 3: boot program
+ $06 | number of symbols (2 bytes)
+ $08 | format version
+     | - should be 1
+ $09 | flags
+     | - bit 1: has debug info
+     | - bit 0: has symbol table
+ $0c | entry point (4 bytes)
+     | - set to 0 if library
+
+# symbol description
+
+addr | meaning
+-----|----------------------
+ $00 | load address
+     | - set to 0 for automatic
+ $04 | pointer to data
+ $08 | data length
+ $0c | reserved (4 bytes)
+
+# symbol table
+
+read 1 byte for length of symbol name.
+then read the symbol name.
+

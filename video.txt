@@ -1,0 +1,367 @@
+# video chip
+
+the video chip provides the following capabilities:
+
+- high resolution (up to 800x576 at 50Hz)
+- 256 out of 65536 colors at once
+- tile/sprite mode
+  - 32 sprites maximum
+  - 3 tile tables which may be independently scrolled
+- bitmap mode
+  - 2, 4, 16 and 256-color options
+- program processor for CPU-less register changes
+- up to 1MB of memory (program and tile/sprite may only use the first 64KB)
+
+here is some documentation for its usage.
+
+the first 256 bytes contain the primary registers:
+
+```
+addr | meaning
+-----|----------------------
+ $00 | STATUS status
+     | - bit 0: vblank
+ $02 | VPOS scanline
+ $04 | HPOS pixel
+ $06 | VBLCNT frame counter
+ $07 | INTC interrupt control
+     | - bit 7: on VSync
+     | - bit 0: on position
+ $08 | INTH interrupt on X
+ $0a | INTV interrupt on Y
+ $0c | CMD command
+ $10 | VCACNT line size
+     | - 800
+ $12 | VCAHBL pre hblank size
+     | - 58
+ $13 | VCAHBP post hblank size
+     | - 24
+ $14 | VCABLU upper blanking lines
+     | - 23
+ $15 | VCABLL lower blanking lines
+     | - 6 or 10
+     | - 16 or 8 lines are added for sync.
+ $16 | VCAACT active size
+     | - 480 or 576
+ $18 | VCHSY0 size of equalizing pulse/horizontal sync (low)
+     | - 70
+ $19 | VCHSY1 size of frame sync pulse (high)
+     | - 140
+ $1a | VCHSZ0 size of equalizing pulse (high)
+     | - 882
+ $1c | VCHSZ1 size of sync pulse (low)
+     | - 812
+ $1e | VCTRL video control
+     | - bit 4: force blank
+     | - bit 3: half vertical mode
+     |   - set for TV compatibility.
+     | - bit 2: video mode
+     |   - 0: progressive
+     |   - 1: interlaced
+     | - bit 0-1: horizontal divider
+     |   - 0: 800
+     |   - 1: 400
+     |   - 2: ~267
+     |   - 3: 200
+     |   - only affects active area.
+ $1f | EXTSYN external sync control
+     | - bit 2: impatient mode
+     |   - does not lock if external sync is absent.
+     | - bit 1: color 0 transparency
+     | - bit 0: lock to external sync
+     |   - it is highly recommended to set bit 3 of VCTRL.
+ $20 | SCRX0 table 0 horizontal scroll
+ $22 | SCRY0 table 0 vertical scroll
+ $24 | SCRX1 table 1 horizontal scroll
+ $26 | SCRY1 table 1 vertical scroll
+ $28 | SCRX2 table 2 horizontal scroll
+ $2a | SCRY2 table 2 vertical scroll
+ $2c | BMPFMT bitmap format:
+     | - bit 0-1: resolution
+     |   - 0: lowres (400x288)
+     |   - 1: halfres 1 (800x288)
+     |   - 2: halfres 2 (400x576)
+     |   - 3: highres (800x576)
+     | - bit 2-3: color depth
+     |   - 0: 256 colors
+     |   - 1: 16 colors
+     |   - 2: 4 colors
+     |   - 3: 2 colors
+     | - bit 4-6: palette
+ $2e | BMPPTR bitmap pointer (>>8)
+     | - aligned to 256 bytes
+     | - enters bitmap mode if not 0
+ $30 | TILSET tile setup:
+     | - bit 0: enable tile table 0
+     | - bit 1: enable tile table 1
+     | - bit 2: enable tile table 2
+     | - bit 4: 8x8 tiles (table 0)
+     | - bit 5: 8x8 tiles (table 1)
+     | - bit 6: 8x8 tiles (table 2)
+ $31 | TILCOL tile color:
+     | - bit 0-1: table 0
+     | - bit 2-3: table 1
+     | - bit 4-5: table 2
+     |   - 0: 256 colors (8x8 only!)
+     |   - 1: 16 colors
+     |   - 2: 4 colors
+     |   - 3: 2 colors
+ $32 | TILSIZ tile table width:
+     | - bit 0-1: table 0
+     | - bit 2-3: table 1
+     | - bit 4-5: table 2
+     |   - 0: 64
+     |   - 1: 32
+     |   - 2: 16
+     |   - 3: 8
+ $34 | TILP0 tile pointer (table 0)
+     | - shifted by 8
+ $35 | TILP1 tile pointer (table 1)
+     | - shifted by 8
+ $36 | TILP2 tile pointer (table 2)
+     | - shifted by 8
+ $38 | TILNEG tile accum inc/shift negate
+     | - bit 0: HX0
+     | - bit 1: HY0
+     | - bit 2: VX0
+     | - bit 3: VY0
+     | - bit 4: HX1
+     | - bit 5: HY1
+     | - bit 6: VX1
+     | - bit 7: VY1
+     | - bit 8: HX2
+     | - bit 9: HY2
+     | - bit 10: VX2
+     | - bit 11: VY2
+ $3a | COLBK background color
+     | - 16-bit color
+ $3d | SETADD fade/bloom
+ $3e | PRGCNT program address
+ $40 | COLS0 16-color sprite palette
+ $50 | COLS1 16-color sprite palette
+ $60 | COLS2 16-color sprite palette
+ $70 | COLS3 16-color sprite palette
+ $80 | COLS4 16-color sprite palette
+ $90 | COLS5 16-color sprite palette
+ $a0 | COLS6 16-color sprite palette
+ $b0 | COLS7 16-color sprite palette
+ $c0 | COL4 4-color palettes
+     | - 8 entries
+ $e0 | COL2 2-color palettes
+     | - 8 entries
+ $f0 | TILHX0 tile H accum inc/shift (X)
+ $f1 | TILHY0 tile V accum inc/shift (Y)
+ $f2 | TILVX0 tile H accum inc/shift (X)
+ $f3 | TILVY0 tile V accum inc/shift (Y)
+     | - bit 6-7: shift
+     | - bit 0-5: value (0 = 64)
+ $f4 | TILHX1 tile H accum inc/shift (X)
+ $f5 | TILHY1 tile V accum inc/shift (Y)
+ $f6 | TILVX1 tile H accum inc/shift (X)
+ $f7 | TILVY1 tile V accum inc/shift (Y)
+     | - bit 6-7: shift
+     | - bit 0-5: value (0 = 64)
+ $f8 | TILHX2 tile H accum inc/shift (X)
+ $f9 | TILHY2 tile V accum inc/shift (Y)
+ $fa | TILVX2 tile H accum inc/shift (X)
+ $fb | TILVY2 tile V accum inc/shift (Y)
+     | - bit 6-7: shift
+     | - bit 0-5: value (0 = 64)
+ $fc | TILSH0 tile table height (table 0 up to 64)
+ $fd | TILSH1 tile table height (table 1)
+ $fe | TILSH2 tile table height (table 2)
+```
+
+the next 512 bytes are for the master palette (MASTER):
+
+- bit 10-15: Y
+- bit 5-9: U
+- bit 0-4: V
+
+the next 256 bytes are for tile palettes (COLT0-COLT15).
+
+the next 512 bytes are for the sprite table (32 sprites):
+
+addr | meaning
+-----|----------------------
+ $00 | SxADD address
+     | - bit 3-15: address
+     |   - aligned to 8 bytes
+     | - bit 0-2: palette index
+ $02 | SxX X
+ $04 | SxY Y
+ $06 | SxW width
+     | - width will be multiplied by format
+ $07 | SxH height
+ $08 | SxFLG flags:
+     | - bit 7: flip Y
+     | - bit 6: flip X
+     | - bit 4-5: format
+     |   - 0: 256 colors
+     |   - 1: 16 colors
+     |   - 2: 4 colors
+     |   - 3: 2 colors
+     | - bit 0-2: depth
+     |   - 0: behind table 0
+     |   - 1: behind table 1
+     |   - 2: behind table 2
+     |   - 3: on top
+ $09 | SxBLE color:
+     | - bit 6-7: V nudge
+     | - bit 4-5: U nudge
+     | - bit 0-3: Y multiply
+ $0a | SxSX X scale
+ $0b | SxSY Y scale
+     | - bit 6-7: shift
+     | - bit 0-5: value (0 = 64)
+ $0c | internal counters
+
+# tile tables
+
+a tile table consists of 64x40 shorts pointing to addresses in video memory in the following format:
+
+- bit 0-3: palette index
+- bit 4-15: address
+  - aligned to 16 bytes
+
+every tile is 16x16, unless the layer has been told to have 8x8 tiles.
+
+# list of commands
+
+ cmd | meaning (args)
+-----|-------------------
+ $00 | NOP no operation
+ $03 | VSYNC force vsync
+ $04 | HSYNC force hsync
+ $05 | SPRTST evaluate sprites
+ $08 | SETCOL set color
+ $80 | HLINE horizontal line
+ $81 | VLINE vertical line
+ $82 | PUTCOL color fill
+ $83 | BLIT perform blit
+
+TODO: document these and corrections?
+
+# program instruction structure
+
+a command is 4 bytes long, and tells the video processor to do tasks without the CPU being involved.
+commands run every 4 master cycles.
+
+the first short is an address. the MSB is reserved for command type.
+only the first 1024 bytes are accessible.
+
+the second short contains data.
+
+command types:
+
+0: move. sets address to a 8 or 16-bit value, determined by bit 14 of address.
+1: wait. wait for a certain event to happen, determined by the rest of bits:
+   1VHLCc00
+    |||||
+    ||||cycles
+    |||cursor
+    ||line
+    |hblank
+    vblank
+  you may only set one of them, otherwise it will wait forever (can be used as end of program).
+
+# internal operation
+
+during power-on, the chip sets its memory to 0.
+this operation takes (memory*2)+4 master cycles.
+
+afterwards, the video generation process begins.
+
+on every cycle, the chip will output different signals depending on the current modes.
+
+there are 4 vertical modes, and 4 horizontal ones.
+two counters, known as VCOUNT and HCOUNT determine the number of cycles until the next mode.
+
+the vertical modes are:
+
+m | description
+--|-----------------
+0 | sync
+1 | active
+2 | upper blank
+3 | lower blank
+
+the horizontal modes are:
+
+m | description
+--|-----------------
+0 | sync
+1 | active
+2 | pre blank/init
+3 | post blank
+
+in vertical mode 0:
+- the horizontal mode is always 0 or 2.
+- a 2-bit pulse type latch (VTYPE) determines whether to produce equalizing (0) or sync (1) pulses.
+- a special counter keeps track of the current position in a sync pulse.
+- VCOUNT is set to 5. when it reaches 0:
+  - if VTYPE is 10 or 11, **go to vertical mode 2**.
+  - otherwise increase VTYPE and set horizontal mode to 0.
+- in horizontal mode 0:
+  - HCOUNT is set to VCHSY0 if VTYPE is 00 or 10.
+  - HCOUNT is set to VCHSZ1 if VTYPE is 01 or 11.
+- in horizontal mode 1:
+  - HCOUNT is set to VCHSZ0 if VTYPE is 00 or 10.
+  - HCOUNT is set to VCHSY1 if VTYPE is 01 or 11.
+- if HCOUNT is 0, set horizontal mode to 1 (if 0) or 0 and cycle VCOUNT (if 1).
+
+in vertical mode 1:
+- set HCOUNT to:
+  - if 0, VCHSY0.
+  - if 2, VCAHBL.
+  - if 1, VCACNT.
+  - if 3, 24.
+- cycle HCOUNT. if it is 0, change horizontal mode:
+  - if 0, go to 2.
+  - if 2, go to 1.
+  - if 1, go to 3.
+  - if 3, go to 0 and cycle VCOUNT.
+- when VCOUNT reaches 0, **go to vertical mode 3**.
+
+in vertical modes 2 and 3:
+- these are identical to mode 1, but the output is blanked and nothing happens in horizontal mode 1.
+- if mode is 2 and in bitmap mode, load BMPPTR.
+  - 4 master cycles.
+- when VCOUNT reaches 0:
+  - if mode is 2, **go to vertical mode 1**.
+  - if mode is 3, **go to vertical mode 0**.
+
+## horizontal operation
+
+(vertical mode 0 is special - see parent section)
+
+in horizontal mode 0:
+- if vertical mode is 1:
+  - in tile/sprite mode:
+    - prepare tile scroll positions (~24 master cycles).
+    - begin sprite evaluation (128 master cycles, 4 per sprite).
+- output low.
+
+in horizontal mode 2:
+- output blank.
+
+in horizontal mode 1:
+- in bitmap mode:
+  - output next color.
+  - increase BMPPTR if required.
+
+in horizontal mode 3:
+- output blank.
+
+## timings
+
+using default values:
+
+- PAL:
+  - 952 cycles per line
+  - 625 lines per frame
+  - 50 frames per second
+- NTSC:
+  - 982 cycles per line
+  - 525 lines per frame
+  - 60 frames per second

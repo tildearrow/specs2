@@ -1,0 +1,466 @@
+# specs2 processor architecture
+
+the specs2 processor architecture is described in this document.
+
+# revisions
+
+three revisions of the processor exist:
+
+- r1: found in specs2 r1/r2.
+  - 16-bit data bus
+  - 24-bit addressing
+  - up to 6.5MHz
+- r2: found in specs2 r3.
+  - 32-bit data bus
+  - 24-bit addressing
+  - up to 20MHz
+- r3: found in specs2 r4.
+  - 32-bit data bus
+  - 32-bit addressing
+  - up to 40MHz
+
+## detecting processor revision
+
+upon boot, the A register is initialized with the processor revision:
+
+- r1: ???
+- r2: ???
+- r3: ???
+
+# registers
+
+eight 32-bit registers:
+
+- accumulators: A, B, C, D
+- index: W, X, Y, Z
+
+indexed operations may only use the index registers.
+the Y register increases when used on an indexed operation, unless DisableY is set.
+the Z register increases (or decreases) when used on an indexed operation.
+
+special registers:
+
+- F: processor flags, from most to least significant: NDKEFIZC (8-bit)
+  - Negative: set whenever the sign bit has changed in the last operation.
+  - DisableY: do not auto-increment Y when read.
+  - Kernel: whether the processor is in kernel mode or not.
+  - Exception: whether an exception was raised.
+  - FlipZ: if set, Z decreases when read (instead of increasing).
+  - Interrupt: if set, interrupts are ignored.
+  - Zero: set whenever the last operation yielded zero.
+  - Carry: set when the value overflows after an addition/subtraction.
+- SP: stack pointer (32-bit)
+- ST: stack top (32-bit)
+- SB: stack bottom (32-bit)
+- PC: program counter (32-bit)
+- CC: cycle counter (32-bit)
+- EX: exception code (8-bit)
+  - 0: no exception
+  - 1: address read
+  - 2: address write
+  - 3: execute
+  - 4: arithmetic (e.g. divide by zero)
+  - 5: privilege violation
+  - 6: illegal instruction
+  - 7: stack error
+  - 8: call stack overflow
+  - 9: illegal halt 
+  - 10: user exception
+- IR: interrupt request code (8-bit)
+- EV: exception handling vector
+- IV: interrupt vector table pointer
+
+# prefetching
+
+the processor is able to fetch one instruction ahead of time in order to cut one cycle per instruction.
+
+the following instructions are prefetch barriers:
+
+- any instruction that alters PC (jumps/branches/jsr/ret)
+- the flush instruction
+
+# note about 32-bit operations
+
+the processor has a 16-bit data bus, which means these will take an additional cycle (except register to register).
+
+later revisions of the processor have a 32-bit dats bus instead.
+
+# instruction set
+
+the instructions are encoded in a way that is similar to that of the 6502's.
+the first byte is the instruction code, and the rest are parameters.
+
+for operations which involve registers, the following 8-bit parameter is used:
+- bit 0-2: destination
+- bit 4-6: source/index
+  - bit 6 is ignored if this is an index (only W/X/Y/Z registers are usable).
+
+for sha/shl, bit 7 indicates direction of shift and bit 3 indicates whether source actually is shift amount (from 0 to 7).
+
+for branch instructions, a 16-bit offset is used.
+
+instructions are categorized by groups:
+- 00-3F: operations, char (8-bit)
+- 40-7F: operations, short (16-bit)
+- 80-BF: operations, int (32-bit)
+- C0-FF: conditions/special
+
+# operations
+
+## add
+
+- register:
+  - `00`: addc R, R
+  - `40`: adds R, R
+  - `80`: add  R, R
+- immediate:
+  - `01`: addc R, #$val
+  - `41`: adds R, #$val
+  - `81`: add  R, #$val
+- absolute:
+  
+- indexed:
+- indirect absolute:
+- indirect offset:
+- indirect indexed:
+- indirect register:
+
+unfinished!!!!!
+
+add R, R                        $80                1 (add)
+add R, #$val                    $81                1 (add)
+add R, $val                     $82                1 (read&add)
+add R, $val+R                   $83                2 (index, read&add)
+add R, ($val)                   $84                2 (unref, read&add)
+add R, ($val)+R                 $85                3 (unref, index, read&add)
+add R, ($val+R)                 $86                3 (index, unref, read&add)
+add R, (R)                      $87                1 (read&add)
+sub R, R                        $88                1 (sub)
+sub R, #$val                    $89                1 (sub)
+sub R, $val                     $8a                1 (read&sub)
+sub R, $val+R                   $8b                2 (index, read&sub)
+sub R, ($val)                   $8c                2 (unref, read&sub)
+sub R, ($val)+R                 $8d                3 (unref, index, read&sub)
+sub R, ($val+R)                 $8e                3 (index, unref, read&sub)
+sub R, (R)                      $8f                1 (read&sub)
+and R, R                        $90                1 (and)
+or R, R                         $91                1 (or)
+xor R, R                        $92                1 (xor)
+cmp R, R                        $93                1 (cmp)
+and R, #$val                    $94                1 (and)
+or R, #$val                     $95                1 (or)
+xor R, #$val                    $96                1 (xor)
+cmp R, #$val                    $97                1 (cmp)
+and R, $addr                    $98                1 (read&and)
+or R, $addr                     $99                1 (read&or)
+xor R, $addr                    $9a                1 (read&xor)
+cmp R, $addr                    $9b                1 (read&cmp)
+and R, (R)                      $9c                1 (unref&read&add)
+or R, (R)                       $9d                1 (unref&read&or)
+xor R, (R)                      $9e                1 (unref&read&xor)
+cmp R, (R)                      $9f                1 (unref&reaf&cmp)
+mov R, R                        $a0                1 (copy)
+mov R, #$val                    $a1                1 (copy)
+mov R, $addr                    $a2                1 (read)
+mov R, $addr+R                  $a3                2 (index, read)
+mov R, ($addr)                  $a4                2 (unref, read)
+mov R, ($addr)+R                $a5                3 (unref, index, read)
+mov R, ($addr+R)                $a6                3 (index, unref, read)
+mov R, (R)                      $a7                1 (unref&copy)
+mov $dest, #$val                $a8                1 (write)
+mov $dest, $src                 $a9                2 (read, write)
+mov $addr, R                    $aa                1 (write)
+mov $addr+R, R                  $ab                2 (index, write)
+mov ($addr), R                  $ac                2 (unref, write)
+mov R, ($addr)+R                $ad                3 (unref, index, write)
+mov R, ($addr+R)                $ae                3 (index, unref, write)
+mov (R), R                      $af                1 (unref&write)
+sha R                           $b0                1 (shift)
+shl R                           $b1                1 (shift)
+rol R, R                        $b2                1 (rotate)
+ror R, R                        $b3                1 (rotate)
+swp R, R                        $b4                1 (swap)
+push R                          $b5                1 (push)
+pop R                           $b6                1 (pop)
+push #$val                      $b7                1 (push)
+mul R, R                        $b8                2 (mul 0-3, mul 4-7)
+mul R, #$val                    $b9                2 (mul 0-3, mul 4-7)
+mulu R, R                       $ba                2 (mul 0-3, mul 4-7)
+mulu R, #$val                   $bb                2 (mul 0-3, mul 4-7)
+div R, R                        $bc                1 (prep)
+div R, #$val                    $bd                1 (prep)
+divq R                          $be                1 (fetch)
+divr R                          $bf                1 (fetch)
+
+
+# conditions/special
+
+instruction                     opcode             cycles
+------------------------------------------------------------------------
+addc R, R                       $00                1 (add)
+addc R, #$val                   $01                1 (add)
+addc R, $val                    $02                1 (read&add)
+addc R, $val+R                  $03                2 (index, read&add)
+addc R, ($val)                  $04                2 (unref, read&add)
+addc R, ($val)+R                $05                3 (unref, index, read&add)
+addc R, ($val+R)                $06                3 (index, unref, read&add)
+addc R, (R)                     $07                1 (read&add)
+subc R, R                       $08                1 (sub)
+subc R, #$val                   $09                1 (sub)
+subc R, $val                    $0a                1 (read&sub)
+subc R, $val+R                  $0b                2 (index, read&sub)
+subc R, ($val)                  $0c                2 (unref, read&sub)
+subc R, ($val)+R                $0d                3 (unref, index, read&sub)
+subc R, ($val+R)                $0e                3 (index, unref, read&sub)
+subc R, (R)                     $0f                1 (read&sub)
+andc R, R                       $10                1 (and)
+orc R, R                        $11                1 (or)
+xorc R, R                       $12                1 (xor)
+cmpc R, R                       $13                1 (cmp)
+andc R, #$val                   $14                1 (and)
+orc R, #$val                    $15                1 (or)
+xorc R, #$val                   $16                1 (xor)
+cmpc R, #$val                   $17                1 (cmp)
+andc R, $addr                   $18                1 (read&and)
+orc R, $addr                    $19                1 (read&or)
+xorc R, $addr                   $1a                1 (read&xor)
+cmpc R, $addr                   $1b                1 (read&cmp)
+andc R, (R)                     $1c                1 (unref&read&and)
+orc R, (R)                      $1d                1 (unref&read&or)
+xorc R, (R)                     $1e                1 (unref&read&xor)
+cmpc R, (R)                     $1f                1 (unref&read&cmp)
+movc R, R                       $20                1 (copy)
+movc R, #$val                   $21                1 (copy)
+movc R, $addr                   $22                1 (read)
+movc R, $addr+R                 $23                2 (index, read)
+movc R, ($addr)                 $24                2 (unref, read)
+movc R, ($addr)+R               $25                3 (unref, index, read)
+movc R, ($addr+R)               $26                3 (index, unref, read)
+movc R, (R)                     $27                1 (unref&copy)
+movc $dest, #$val               $28                1 (write)
+movc $dest, $src                $29                2 (read, write)
+movc $addr, R                   $2a                1 (write)
+movc $addr+R, R                 $2b                2 (index, write)
+movc ($addr), R                 $2c                2 (unref, write)
+movc ($addr)+R, R               $2d                3 (unref, index, write)
+movc ($addr+R), R               $2e                3 (index, unref, write)
+movc (R), R                     $2f                1 (unref&write)
+shac R, d#R                     $30                1 (shift)
+shlc R, d#R                     $31                1 (shift)
+rolc R, #R                      $32                1 (rotate)
+rorc R, #R                      $33                1 (rotate)
+swpc R, R                       $34                1 (swap)
+pushc R                         $35                1 (push)
+popc R                          $36                1 (pop)
+pushc #$val                     $37                1 (push)
+mulc R, R                       $38                2 (mul 0-3, mul 4-7)
+mulc R, #$val                   $39                2 (mul 0-3, mul 4-7)
+muluc R, R                      $3a                2 (mul 0-3, mul 4-7)
+muluc R, #$val                  $3b                2 (mul 0-3, mul 4-7)
+divc R, R                       $3c                1 (prep)
+divc R, #$val                   $3d                1 (prep)
+divqc R                         $3e                1 (fetch)
+divrc R                         $3f                1 (fetch)
+
+instruction                     opcode             cycles
+------------------------------------------------------------------------
+adds R, R                       $40                1 (add)
+adds R, #$val                   $41                1 (add)
+adds R, $val                    $42                1 (read&add)
+adds R, $val+R                  $43                2 (index, read&add)
+adds R, ($val)                  $44                2 (unref, read&add)
+adds R, ($val)+R                $45                3 (unref, index, read&add)
+adds R, ($val+R)                $46                3 (index, unref, read&add)
+adds R, (R)                     $47                1 (read&add)
+subs R, R                       $48                1 (sub)
+subs R, #$val                   $49                1 (sub)
+subs R, $val                    $4a                1 (read&sub)
+subs R, $val+R                  $4b                2 (index, read&sub)
+subs R, ($val)                  $4c                2 (unref, read&sub)
+subs R, ($val)+R                $4d                3 (unref, index, read&sub)
+subs R, ($val+R)                $4e                3 (index, unref, read&sub)
+subs R, (R)                     $4f                1 (read&sub)
+ands R, R                       $50                1 (and)
+ors R, R                        $51                1 (or)
+xors R, R                       $52                1 (xor)
+cmps R, R                       $53                1 (cmp)
+ands R, #$val                   $54                1 (and)
+ors R, #$val                    $55                1 (or)
+xors R, #$val                   $56                1 (xor)
+cmps R, #$val                   $57                1 (cmp)
+ands R, $addr                   $58                1 (read&and)
+ors R, $addr                    $59                1 (read&or)
+xors R, $addr                   $5a                1 (read&xor)
+cmps R, $addr                   $5b                1 (read&cmp)
+ands R, (R)                     $5c                1 (unref&read&add)
+ors R, (R)                      $5d                1 (unref&read&or)
+xors R, (R)                     $5e                1 (unref&read&xor)
+cmps R, (R)                     $5f                1 (unref&reaf&cmp)
+movs R, R                       $60                1 (copy)
+movs R, #$val                   $61                1 (copy)
+movs R, $addr                   $62                1 (read)
+movs R, $addr+R                 $63                2 (index, read)
+movs R, ($addr)                 $64                2 (unref, read)
+movs R, ($addr)+R               $65                3 (unref, index, read)
+movs R, ($addr+R)               $66                3 (index, unref, read)
+movs R, (R)                     $67                1 (unref&copy)
+movs $dest, #$val               $68                1 (write)
+movs $dest, $src                $69                2 (read, write)
+movs $addr, R                   $6a                1 (write)
+movs $addr+R, R                 $6b                2 (index, write)
+movs ($addr), R                 $6c                2 (unref, write)
+movs R, ($addr)+R               $6d                3 (unref, index, write)
+movs R, ($addr+R)               $6e                3 (index, unref, write)
+movs (R), R                     $6f                1 (unref&write)
+sals R                          $70                1 (shift)
+sars R                          $71                1 (shift)
+rols R, R                       $72                1 (rotate)
+rors R, R                       $73                1 (rotate)
+swps R, R                       $74                1 (swap)
+pushs R                         $75                1 (push)
+pops R                          $76                1 (pop)
+pushs #$val                     $77                1 (push)
+muls R, R                       $78                2 (mul 0-3, mul 4-7)
+muls R, #$val                   $79                2 (mul 0-3, mul 4-7)
+mulus R, R                      $7a                2 (mul 0-3, mul 4-7)
+mulus R, #$val                  $7b                2 (mul 0-3, mul 4-7)
+divs R, R                       $7c                1 (prep)
+divs R, #$val                   $7d                1 (prep)
+divqs R                         $7e                1 (fetch)
+divrs R                         $7f                1 (fetch)
+
+instruction                     opcode             cycles
+------------------------------------------------------------------------
+add R, R                        $80                1 (add)
+add R, #$val                    $81                1 (add)
+add R, $val                     $82                1 (read&add)
+add R, $val+R                   $83                2 (index, read&add)
+add R, ($val)                   $84                2 (unref, read&add)
+add R, ($val)+R                 $85                3 (unref, index, read&add)
+add R, ($val+R)                 $86                3 (index, unref, read&add)
+add R, (R)                      $87                1 (read&add)
+sub R, R                        $88                1 (sub)
+sub R, #$val                    $89                1 (sub)
+sub R, $val                     $8a                1 (read&sub)
+sub R, $val+R                   $8b                2 (index, read&sub)
+sub R, ($val)                   $8c                2 (unref, read&sub)
+sub R, ($val)+R                 $8d                3 (unref, index, read&sub)
+sub R, ($val+R)                 $8e                3 (index, unref, read&sub)
+sub R, (R)                      $8f                1 (read&sub)
+and R, R                        $90                1 (and)
+or R, R                         $91                1 (or)
+xor R, R                        $92                1 (xor)
+cmp R, R                        $93                1 (cmp)
+and R, #$val                    $94                1 (and)
+or R, #$val                     $95                1 (or)
+xor R, #$val                    $96                1 (xor)
+cmp R, #$val                    $97                1 (cmp)
+and R, $addr                    $98                1 (read&and)
+or R, $addr                     $99                1 (read&or)
+xor R, $addr                    $9a                1 (read&xor)
+cmp R, $addr                    $9b                1 (read&cmp)
+and R, (R)                      $9c                1 (unref&read&add)
+or R, (R)                       $9d                1 (unref&read&or)
+xor R, (R)                      $9e                1 (unref&read&xor)
+cmp R, (R)                      $9f                1 (unref&reaf&cmp)
+mov R, R                        $a0                1 (copy)
+mov R, #$val                    $a1                1 (copy)
+mov R, $addr                    $a2                1 (read)
+mov R, $addr+R                  $a3                2 (index, read)
+mov R, ($addr)                  $a4                2 (unref, read)
+mov R, ($addr)+R                $a5                3 (unref, index, read)
+mov R, ($addr+R)                $a6                3 (index, unref, read)
+mov R, (R)                      $a7                1 (unref&copy)
+mov $dest, #$val                $a8                1 (write)
+mov $dest, $src                 $a9                2 (read, write)
+mov $addr, R                    $aa                1 (write)
+mov $addr+R, R                  $ab                2 (index, write)
+mov ($addr), R                  $ac                2 (unref, write)
+mov R, ($addr)+R                $ad                3 (unref, index, write)
+mov R, ($addr+R)                $ae                3 (index, unref, write)
+mov (R), R                      $af                1 (unref&write)
+sal R                           $b0                1 (shift)
+sar R                           $b1                1 (shift)
+rol R, R                        $b2                1 (rotate)
+ror R, R                        $b3                1 (rotate)
+swp R, R                        $b4                1 (swap)
+push R                          $b5                1 (push)
+pop R                           $b6                1 (pop)
+push #$val                      $b7                1 (push)
+mul R, R                        $b8                2 (mul 0-3, mul 4-7)
+mul R, #$val                    $b9                2 (mul 0-3, mul 4-7)
+mulu R, R                       $ba                2 (mul 0-3, mul 4-7)
+mulu R, #$val                   $bb                2 (mul 0-3, mul 4-7)
+div R, R                        $bc                1 (prep)
+div R, #$val                    $bd                1 (prep)
+divq R                          $be                1 (fetch)
+divr R                          $bf                1 (fetch)
+
+instruction                     opcode             cycles
+------------------------------------------------------------------------
+beq $off                        $c0
+bne $off                        $c1
+bmi $off                        $c2
+bpl $off                        $c3
+bcs $off                        $c4
+bcc $off                        $c5
+loopc $off                      $c6
+loops $off                      $c7
+bbs R.#b, $off                  $c8
+bbc R.#b, $off                  $c9
+bbs R.R, $off                   $ca
+bbc R.R, $off                   $cb
+mov R, EX                       $cc
+mov R, IR                       $cd
+loop $off                       $ce
+bra $off                        $cf
+jmp $addr                       $d0
+jmp ($addr)                     $d1
+jsr $addr                       $d2
+jsr ($addr)                     $d3
+extc R                          $d4
+exts R                          $d5
+mov EV, R                       $d6
+mov IV, R                       $d7
+mov R, ST                       $d8
+mov ST, R                       $d9
+mov R, SB                       $da
+mov SB, R                       $db
+flush                           $dc
+brk                             $dd
+hlt                             $de
+ret                             $df
+set n                           $e0
+set d                           $e1
+set k                           $e2
+set e                           $e3
+set f                           $e4
+set i                           $e5
+set z                           $e6
+set c                           $e7
+clr n                           $e8
+clr d                           $e9
+clr k                           $ea
+clr e                           $eb
+clr f                           $ec
+clr i                           $ed
+clr z                           $ee
+clr c                           $ef
+pushds                          $f0
+pushall                         $f1
+popds                           $f2
+popall                          $f3
+mov R, SP                       $f4
+mov SP, R                       $f5
+movc R, F                       $f6
+mov R, PC                       $f7
+lcc R                           $f8
+scc R                           $f9
+rcc                             $fa
+                                $fb
+nop                             $fc
+                                $fd
+                                $fe
+                                $ff
+
+this is probably the final spec, before i begin working on the emulator.

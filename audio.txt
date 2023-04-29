@@ -1,0 +1,151 @@
+# audio chip
+
+the chip has:
+- 8 sound channels
+- 8KB of PCM memory (later revisions have 64KB or an external bus)
+- a 16-bit DAC and 8-bit ADC (some revisions use an 8-bit DAC)
+
+a channel's registers are 32 bytes, and the structure follows:
+
+addr | meaning
+-----|------------------
+ $00 | FREQ0 frequency
+ $02 | VOL0 volume
+ $03 | PAN0 panning
+ $04 | CNT0 flags:
+     | - bit 14: cutoff sweep
+     | - bit 13: volume sweep
+     | - bit 12: freq sweep
+     | - bit 11: timer reset
+     | - bit 10: PCM loop
+     | - bit 9: reset filter
+     | - bit 8: reset osc
+     | - bit 5-7: filter mode
+     | - bit 4: ring (w/next channel)
+     | - bit 3: PCM
+     | - bit 0-2: shape
+     |   - 0: square
+     |   - 1: saw
+     |   - 2: sine
+     |   - 3: triangle
+     |   - 4: noise
+     |   - 5: fixed noise
+     |   - 6: fixed noise (duty 5)
+     |   - 7: none
+ $06 | CUT0 cutoff
+ $08 | DUTY0 duty
+ $09 | RES0 resonance
+ $0a | PCMP0 PCM position
+ $0c | PCMB0 PCM bound
+ $0e | PCMR0 PCM reset
+ $10 | SWFS0 freq sweep speed
+ $12 | SWFA0 freq sweep amount
+     | - MSB for direction (1: up)
+ $13 | SWFB0 freq sweep bound
+ $14 | SWVS0 volume sweep speed
+ $16 | SWVA0 volume sweep flags
+     | - bit 7: loop direction invert
+     | - bit 6: loop
+     | - bit 5: direction
+     | - bit 0-4: amount
+ $17 | SWVB0 volume sweep bound
+ $18 | SWCS0 cutoff sweep speed
+ $1a | SWCA0 cutoff sweep amount
+     | - MSB for direction (1: up)
+ $1b | SWCB0 cutoff sweep bound
+ $1c | ??? special use
+ $1e | RESET0 reset timer
+
+## notes
+- reset timer affects wave counter
+- volume is a signed number
+- panning starts at left and goes right
+
+## $1c register information
+
+addr | meaning
+-----|------------------
+ $1c | 
+ $1d | 
+ $3c | 
+ $3d | 
+ $5c | 
+ $5d | 
+ $7c | PADDR PCM memory address (write low, then high)
+ $7d | PDATA PCM memory data (address increases after reading/writing)
+ $9c | FILVOL buffer output volume (signed)
+ $9d | ILCTRL input line control
+     | - bit 4: interrupt on half-buffer
+     | - bit 2: buffer output
+     | - bit 0-1: input line to use
+     |   - 0: IL0 only
+     |   - 1: IL1 only
+     |   - 2: IL2 only
+     |   - 3: IL1/IL2 combo
+ $bc | ILSIZE input line buffer size (*128)
+     | - bit 7 sets feedback flip
+     | - bit 6 enables the buffer
+ $bd | FIL1 feedback of input to memory
+     | - bit 4-7: period (/4)
+     | - bit 0-3: amount
+ $dc | IL1 input line 1 (read, wired to output left)
+ $dd | IL2 input line 2 (read, wired to output right)
+ $fc | IL0 input line 0 (read, wired to pin 0)
+
+# chip revisions
+
+separate addressing: 8 address lines, 8 data lines
+multiplex addressing: 1 address/data select line, 8 data lines
+
+no | clock   | PCM | addr | DAC resolution
+---|---------|-----|------|---------------
+ A | 1.19MHz | 8K  | Sep. | 16-bit
+ B | 1.19MHz | 8K  | Mult | 16-bit
+ C | 3.58MHz | no  | Mult | 8-bit
+ D | 1.19MHz | 64K | Sep. | 16-bit
+ E | 3.58MHz | 8K  | Sep. | 8-bit
+ F | 1.19MHz | EXT | Sep. | 16-bit
+
+# diagram
+
+## revision A/D/E
+
+```
+      +-------+
+ Vcc -|1    28|- OL0
+ CLK -|2    27|- OL1
+  A0 -|3    26|- RDY
+  A1 -|4    25|- D0
+  A2 -|5    24|- D1
+  A3 -|6    23|- D2
+  A4 -|7    22|- D3
+  A5 -|8    21|- D4
+  A6 -|9    20|- D5
+  A7 -|10   19|- D6
+  WE -|11   18|- D7
+     -|12   17|- RESET
+  CS -|13   16|-
+ IL0 -|14   15|- GND
+      +-------+
+```
+
+- WE: write enable
+- CS: chip select
+- IL0: Input Line 0
+- OL0/OL1: Output Lines
+
+## revision B/C
+
+```
+      +-------+
+ Vcc -|1    18|- D0
+  CS -|2    17|- D1
+ RDY -|3    16|- D2
+  WE -|4    15|- D3
+  A0 -|5    14|- D4
+ IL0 -|6    13|- D5
+ CLK -|7    12|- D6
+ OL0 -|8    11|- D7
+ OL1 -|9    10|- GND
+      +-------+
+```
