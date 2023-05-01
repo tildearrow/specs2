@@ -98,6 +98,7 @@ unsigned char shiftAndTable[4]={
 
 void vuInit(s2VideoUnit* vu, unsigned int memCapacity) {
   vu->memCapacity=memCapacity;
+  vu->memMask=memCapacity-1;
   vu->mem=malloc(memCapacity);
 
   vuReset(vu,0);
@@ -115,6 +116,7 @@ void vuReset(s2VideoUnit* vu, unsigned short toggle) {
   vu->vmode=3;
   vu->hmode=3;
   vu->vslatch=0;
+  vu->divider=0;
   vu->bitmap=0;
   for (int i=0; i<3; i++) {
     vu->tileX[i]=0;
@@ -137,21 +139,45 @@ void vuReset(s2VideoUnit* vu, unsigned short toggle) {
 #define VU_COLOR(_x) (((unsigned short*)&vu->mem[v_MASTER])[_x])
 
 unsigned short vuClockSync(s2VideoUnit* vu) {
+  if (vu->syncTrigger) {
+    vu->syncTrigger=false;
+  }
   if (vu->hmode) {
     return 0;
   }
+
   return VU_SYNC;
 }
 
 unsigned short vuClockActive(s2VideoUnit* vu) {
-  if (vu->hmode==0) return VU_SYNC;
+  if (vu->syncTrigger) {
+    vu->syncTrigger=false;
+    vu->divider=0;
+    if (!(VU_UCHAR(v_BMPFMT)&2)) {
+      if (vu->vpos&1) {
+        vu->bptr=vu->bvptr;
+      } else {
+        vu->bvptr=vu->bptr;
+      }
+    }
+  }
+
+  if (vu->hmode==0) {
+    return VU_SYNC;
+  }
   if (vu->hmode&2) return 0;
+
+  if (++vu->divider>(VU_UCHAR(v_VCTRL)&3)) {
+    vu->divider=0;
+  } else {
+    return VU_HOLD;
+  }
 
   vu->hpos++;
 
   // output next
   if (vu->bitmap) {
-    unsigned char data=vu->mem[vu->bptr>>vu->bshift];
+    unsigned char data=vu->mem[(vu->bptr>>vu->bshift)&vu->memMask];
     data>>=shiftTable[vu->bshift][vu->bptr&((1<<vu->bshift)-1)];
     data&=shiftAndTable[vu->bshift];
 
@@ -179,7 +205,6 @@ unsigned short vuClockActive(s2VideoUnit* vu) {
     // run sprites
 
     // output
-                      VU_USHORT(v_COLBK)++;
     return VU_USHORT(v_COLBK);
   }
 
@@ -187,7 +212,16 @@ unsigned short vuClockActive(s2VideoUnit* vu) {
 }
 
 unsigned short vuClockBlank(s2VideoUnit* vu) {
+  if (vu->syncTrigger) {
+    vu->syncTrigger=false;
+  }
   if (!vu->hmode) {
+    if (vu->vmode==2) {
+      vu->bitmap=VU_USHORT(v_BMPPTR)?1:0;
+      vu->bshift=(VU_UCHAR(v_BMPFMT)&0x0c)>>2;
+      vu->bptr=VU_UCHAR(v_BMPPTR)<<(8+vu->bshift);
+      vu->bvptr=vu->bptr;
+    }
     return VU_SYNC;
   }
   return 0;
@@ -271,6 +305,7 @@ unsigned short vuClock(s2VideoUnit* vu) {
         case 0:
           vu->hcount=VU_UCHAR(v_VCHSY0);
           vu->hpos=0xffff;
+          vu->syncTrigger=true;
           if (vu->vmode==1) vu->vpos++;
           break;
         case 1:

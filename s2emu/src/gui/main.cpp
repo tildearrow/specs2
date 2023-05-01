@@ -1,10 +1,14 @@
 #include <stdio.h>
+#include <string>
 #include "imgui.h"
 #include "imgui_impl_sdl.h"
 #include "imgui_impl_sdlrenderer.h"
+#include "misc/cpp/imgui_stdlib.h"
 #include <SDL.h>
 #include "fonts.h"
 #include "../core/specs2.h"
+
+typedef std::string String;
 
 s2System sys;
 
@@ -34,6 +38,27 @@ double vFactor=0.615;
 int outFormat=0;
 
 int clocksPerFrame=595000;
+int hexTarget=0;
+int hexPage=0;
+int hexPokeAddr=0;
+int hexPokeData=0;
+String hexPokeFile;
+
+const char* hexTargets[]={
+  "System",
+  "Sound",
+  "Video",
+  "Character",
+  "Core"
+};
+
+const int hexTargetSize[]={
+  (S2_MEMORY-1)>>8,
+  0,
+  255,
+  127,
+  63
+};
 
 void buildTable(double wR, double wB, double uMax, double vMax, double uFactor, double vFactor) {
   if (outFormat==3) {
@@ -263,6 +288,80 @@ int main(int argc, char** argv) {
         }
 
         //ImGui::Image(tex,ImVec2(1024*dpiScale,768*dpiScale),ImVec2(0,0),ImVec2(1,1));
+      }
+    }
+    ImGui::End();
+
+    if (ImGui::Begin("Hex Editor")) {
+      ImGui::Combo("Target",&hexTarget,hexTargets,5);
+      ImGui::SliderInt("Page",&hexPage,0,hexTargetSize[hexTarget],"%.4x");
+
+      unsigned char* memRegion=NULL;
+
+      switch (hexTarget) {
+        case 0:
+          memRegion=sys.memory;
+          break;
+        case 1:
+          memRegion=(unsigned char*)sys.su.chan;
+          break;
+        case 2:
+          memRegion=sys.vu.mem;
+          break;
+      }
+
+      if (ImGui::BeginTable("HexView",17)) {
+        ImGui::TableNextRow();
+        ImGui::TableNextColumn();
+        for (int i=0; i<16; i++) {
+          ImGui::TableNextColumn();
+          ImGui::PushStyleColor(ImGuiCol_Text,ImGui::GetColorU32(ImGuiCol_HeaderActive));
+          ImGui::Text("%X",i);
+          ImGui::PopStyleColor();
+        }
+        for (int i=0; i<16; i++) {
+          ImGui::TableNextRow();
+          ImGui::TableNextColumn();
+          ImGui::PushStyleColor(ImGuiCol_Text,ImGui::GetColorU32(ImGuiCol_HeaderActive));
+          ImGui::Text("%X",i);
+          ImGui::PopStyleColor();
+
+          for (int j=0; j<16; j++) {
+            ImGui::TableNextColumn();
+            if (memRegion==NULL) {
+              ImGui::Text("??");
+            } else {
+              unsigned int addr=(hexPage<<8)|(i<<4)|j;
+              if (addr>(unsigned int)((hexTargetSize[hexTarget]<<8)|0xff)) {
+                ImGui::Text("??");
+              } else {
+                ImGui::Text("%.2x",memRegion[addr]);
+              }
+            }
+          }
+        }
+        ImGui::EndTable();
+      }
+
+      ImGui::SetNextItemWidth(240.0*dpiScale);
+      ImGui::InputInt("##Address",&hexPokeAddr,1,16,ImGuiInputTextFlags_CharsHexadecimal);
+      ImGui::SameLine();
+      ImGui::SetNextItemWidth(240.0*dpiScale);
+      ImGui::InputInt("##Data",&hexPokeData,1,16,ImGuiInputTextFlags_CharsHexadecimal);
+      ImGui::SameLine();
+      if (ImGui::Button("Write")) {
+        if (hexPokeAddr<=((hexTargetSize[hexTarget]<<8)|0xff)) {
+          memRegion[hexPokeAddr]=hexPokeData;
+        }
+      }
+      ImGui::InputText("##File",&hexPokeFile);
+      ImGui::SameLine();
+      if (ImGui::Button("Poke File")) {
+        FILE* f=fopen(hexPokeFile.c_str(),"rb");
+        if (f!=NULL) {
+          fread(memRegion+hexPokeAddr,1,((hexTargetSize[hexTarget]<<8)|0xff)-hexPokeAddr,f);
+          fclose(f);
+        }
       }
     }
     ImGui::End();

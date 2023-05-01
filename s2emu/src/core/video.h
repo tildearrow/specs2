@@ -4,6 +4,7 @@
 #include "core.h"
 
 #define VU_SYNC 0x0010
+#define VU_HOLD 0x0200
 
 typedef struct {
   unsigned short count;
@@ -25,7 +26,10 @@ typedef struct {
   unsigned char hmode;
   unsigned char vslatch;
 
+  unsigned char divider;
+
   unsigned char bitmap;
+  unsigned char syncTrigger;
 
   // tile mode
   unsigned int tileX[3];
@@ -41,6 +45,7 @@ typedef struct {
 
   unsigned char* mem;
   unsigned int memCapacity;
+  unsigned int memMask;
 
   unsigned short toggle;
 } s2VideoUnit;

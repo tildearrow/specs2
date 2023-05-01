@@ -39,7 +39,10 @@ void systemInit(s2System* sys, unsigned int memCapacity) {
 void systemAdvance(s2System* sys, unsigned int cycles) {
   do {
     coreClock(&sys->core);
-    sys->vuOutput=vuClock(&sys->vu);
+    unsigned short newOut=vuClock(&sys->vu);
+    if (newOut!=VU_HOLD) {
+      sys->vuOutput=newOut;
+    }
     if (sys->core.clockCPU) cpuClock(&sys->cpu);
     if (sys->core.clockSU) suClock(&sys->su,&sys->suOutL,&sys->suOutR);
 
