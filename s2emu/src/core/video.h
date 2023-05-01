@@ -3,6 +3,8 @@
 
 #include "core.h"
 
+#define VU_SYNC 0x0010
+
 typedef struct {
   unsigned short count;
   unsigned char width;

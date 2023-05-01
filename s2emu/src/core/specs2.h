@@ -20,6 +20,10 @@ typedef struct {
 
   unsigned char* memory;
   unsigned int memCapacity;
+
+  unsigned short* frame;
+  int framePos;
+  short frameSyncCycles;
   unsigned short vuOutput;
   short suOutL, suOutR;
 } s2System;

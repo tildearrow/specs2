@@ -131,7 +131,6 @@ void vuReset(s2VideoUnit* vu, unsigned short toggle) {
   vu->toggle=toggle;
 }
 
-#define VU_SYNC 0x0010
 #define VU_USHORT(_x) (*((unsigned short*)(&vu->mem[_x])))
 #define VU_UCHAR(_x) (vu->mem[_x])
 #define VU_COLOR(_x) (((unsigned short*)&vu->mem[v_MASTER])[_x])
@@ -179,6 +178,7 @@ unsigned short vuClockActive(s2VideoUnit* vu) {
     // run sprites
 
     // output
+    return 0xaaaa;
   }
 
   return 0;

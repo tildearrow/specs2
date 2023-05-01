@@ -11,6 +11,9 @@ void systemInit(s2System* sys, unsigned int memCapacity) {
   sys->memCapacity=memCapacity;
   sys->memory=malloc(memCapacity);
 
+  sys->frame=malloc(1024*576*sizeof(unsigned short));
+  sys->framePos=0;
+
   coreSetMemory(&sys->core,sys->memory,sys->memCapacity);
 
   printf("reading BIOS...\n");
@@ -35,6 +38,23 @@ void systemAdvance(s2System* sys, unsigned int cycles) {
     sys->vuOutput=vuClock(&sys->vu);
     if (sys->core.clockCPU) cpuClock(&sys->cpu);
     if (sys->core.clockSU) suClock(&sys->su,&sys->suOutL,&sys->suOutR);
+
+    // terrible sync detection code
+    if (sys->vuOutput==VU_SYNC) {
+      if (sys->frameSyncCycles>32) {
+        sys->framePos=(sys->framePos+1023)&(~1023);
+      }
+      if (sys->frameSyncCycles>1024) {
+        sys->frameSyncCycles=1024;
+        sys->framePos=-30*1024;
+      }
+    } else {
+      sys->frameSyncCycles-=4;
+      if (sys->frameSyncCycles<0) sys->frameSyncCycles=0;
+    }
+    if (sys->framePos>=0 && sys->framePos<1024*576) {
+      sys->frame[sys->framePos++]=sys->vuOutput;
+    }
   } while (--cycles);
 }
 
