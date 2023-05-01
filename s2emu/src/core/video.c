@@ -71,6 +71,7 @@ enum s2VideoReg {
   v_SPRITE  =0x400,
 };
 
+// format: width pre-h|post-h up|down height sy0|sy1 sz0 sz1 flags
 unsigned short videoParams[2][2][8]={
   // PAL
   {
@@ -107,8 +108,8 @@ void vuInit(s2VideoUnit* vu, unsigned int memCapacity) {
 // 0: NTSC/PAL (NTSC if on)
 void vuReset(s2VideoUnit* vu, unsigned short toggle) {
   vu->initAddr=vu->memCapacity;
-  vu->vcount=0;
-  vu->hcount=0;
+  vu->vcount=1;
+  vu->hcount=1;
   vu->vpos=0;
   vu->hpos=0;
   vu->vmode=3;
@@ -178,7 +179,8 @@ unsigned short vuClockActive(s2VideoUnit* vu) {
     // run sprites
 
     // output
-    return 0xaaaa;
+                      VU_USHORT(v_COLBK)++;
+    return VU_USHORT(v_COLBK);
   }
 
   return 0;
@@ -235,17 +237,17 @@ unsigned short vuClock(s2VideoUnit* vu) {
   if (!vu->vcount) {
     switch (vu->vmode) {
       case 0:
-        vu->vcount=5; // always
+        vu->vcount=5+(!vu->vslatch?1:0); // always
         vu->vpos=0xffff;
         break;
       case 1:
         vu->vcount=VU_USHORT(v_VCAACT);
         break;
       case 2:
-        vu->vcount=VU_USHORT(v_VCABLU);
+        vu->vcount=VU_UCHAR(v_VCABLU);
         break;
       case 3:
-        vu->vcount=VU_USHORT(v_VCABLL);
+        vu->vcount=VU_UCHAR(v_VCABLL);
         break;
     }
   }
@@ -272,7 +274,7 @@ unsigned short vuClock(s2VideoUnit* vu) {
           if (vu->vmode==1) vu->vpos++;
           break;
         case 1:
-          vu->hcount=VU_USHORT(v_VCAACT);
+          vu->hcount=VU_USHORT(v_VCACNT);
           break;
         case 2:
           vu->hcount=VU_UCHAR(v_VCAHBL);

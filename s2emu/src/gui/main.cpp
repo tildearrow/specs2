@@ -22,51 +22,77 @@ ImFont* mainFont;
 int* colorTable=NULL;
 
 bool quit=false;
+bool shallBuild=false;
+
+double wR=0.299;
+double wB=0.114;
+double uMax=0.436;
+double vMax=0.615;
+double uFactor=0.436;
+double vFactor=0.615;
+
+int outFormat=0;
+
+int clocksPerFrame=595000;
 
 void buildTable(double wR, double wB, double uMax, double vMax, double uFactor, double vFactor) {
-  const double wG=1.0-wR-wB;
-  const double uW=(1.0-wB)/uMax;
-  const double vW=(1.0-wR)/vMax;
-  const double gU=(wB*(1.0-wB))/(uMax*wG);
-  const double gV=(wR*(1.0-wR))/(vMax*wG);
+  if (outFormat==3) {
+    for (int i=0; i<65536; i++) {
+      unsigned char yi=((i>>10)*255)/63;
+      unsigned char ui=(((i>>5)&31)+16)<<3;
+      unsigned char vi=((i+16)&31)<<3;
 
-  if (colorTable==NULL) colorTable=new int[65536];
+      unsigned char* out=(unsigned char*)(&colorTable[i]);
+      out[0]=ui;
+      out[1]=yi;
+      out[2]=vi;
+      out[3]=yi;
+    }
+  } else {
+    const double wG=1.0-wR-wB;
+    const double uW=(1.0-wB)/uMax;
+    const double vW=(1.0-wR)/vMax;
+    const double gU=(wB*(1.0-wB))/(uMax*wG);
+    const double gV=(wR*(1.0-wR))/(vMax*wG);
 
-  for (int i=0; i<65536; i++) {
-    unsigned char yi=(i>>10)&63;
-    signed char ui=(i>>5)&31;
-    signed char vi=i&31;
+    if (colorTable==NULL) colorTable=new int[65536];
 
-    if (ui&16) ui|=0xf0;
-    if (vi&16) vi|=0xf0;
+    for (int i=0; i<65536; i++) {
+      unsigned char yi=(i>>10)&63;
+      signed char ui=(i>>5)&31;
+      signed char vi=i&31;
 
-    if (ui<-15) ui=-15;
-    if (vi<-15) vi=-15;
+      if (ui&16) ui|=0xf0;
+      if (vi&16) vi|=0xf0;
 
-    const double y=(double)yi/63.0;
-    const double u=((double)ui/15.0)*0.436;
-    const double v=((double)vi/15.0)*0.615;
+      if (ui<-15) ui=-15;
+      if (vi<-15) vi=-15;
 
-    double r=y+v*vW;
-    double g=y-u*gU-v*gV;
-    double b=y+u*uW;
+      const double y=(double)yi/63.0;
+      const double u=((double)ui/15.0)*uFactor;
+      const double v=((double)vi/15.0)*vFactor;
 
-    r=round(r*255);
-    g=round(g*255);
-    b=round(b*255);
+      double r=y+v*vW;
+      double g=y-u*gU-v*gV;
+      double b=y+u*uW;
 
-    if (r<0) r=0;
-    if (r>255) r=255;
-    if (g<0) g=0;
-    if (g>255) g=255;
-    if (b<0) b=0;
-    if (b>255) b=255;
+      r=round(r*255);
+      g=round(g*255);
+      b=round(b*255);
 
-    unsigned char* out=(unsigned char*)(&colorTable[i]);
-    out[0]=255;
-    out[1]=b;
-    out[2]=g;
-    out[3]=r;
+      if (r<0) r=0;
+      if (r>255) r=255;
+      if (g<0) g=0;
+      if (g>255) g=255;
+      if (b<0) b=0;
+      if (b>255) b=255;
+
+      unsigned char* out=(unsigned char*)(&colorTable[i]);
+      out[0]=b;
+      out[1]=g;
+      out[2]=r;
+      out[3]=255;
+    }
   }
 }
 
@@ -127,8 +153,6 @@ bool initGUI() {
   return true;
 }
 
-
-
 int main(int argc, char** argv) {
   systemInit(&sys,S2_MEMORY);
 
@@ -145,6 +169,8 @@ int main(int argc, char** argv) {
       }
     }
 
+    SDL_GetRendererOutputSize(sdlRend,&scrW,&scrH);
+
     ImGui_ImplSDLRenderer_NewFrame();
     ImGui_ImplSDL2_NewFrame(sdlWin);
     ImGui::NewFrame();
@@ -156,10 +182,40 @@ int main(int argc, char** argv) {
       }
       if (ImGui::BeginMenu("settings")) {
         ImGui::Text("output format:");
-        ImGui::RadioButton("YUV -> RGB (0.34, 0.30)",false);
-        ImGui::RadioButton("YUV -> RGB (0.436, 0.615)",false);
-        ImGui::RadioButton("YUV -> RGB (0.5, 0.5)",false);
-        ImGui::RadioButton("YUV -> YUV (native)",false);
+        if (ImGui::RadioButton("YUV -> RGB (0.34, 0.30)",outFormat==0)) {
+          wR=0.299;
+          wB=0.114;
+          uMax=0.436;
+          vMax=0.615;
+          uFactor=0.436;
+          vFactor=0.615;
+          shallBuild=true;
+          outFormat=0;
+        }
+        if (ImGui::RadioButton("YUV -> RGB (0.436, 0.615)",outFormat==1)) {
+          wR=0.299;
+          wB=0.114;
+          uMax=0.436;
+          vMax=0.615;
+          uFactor=0.34;
+          vFactor=0.30;
+          shallBuild=true;
+          outFormat=1;
+        }
+        if (ImGui::RadioButton("YUV -> RGB (0.5, 0.5)",outFormat==2)) {
+          wR=0.299;
+          wB=0.114;
+          uMax=0.5;
+          vMax=0.5;
+          uFactor=0.34;
+          vFactor=0.30;
+          shallBuild=true;
+          outFormat=2;
+        }
+        if (ImGui::RadioButton("YUV -> YUV (native)",outFormat==3)) {
+          shallBuild=true;
+          outFormat=3;
+        }
         ImGui::EndMenu();
       }
 
@@ -167,11 +223,32 @@ int main(int argc, char** argv) {
     }
 
     if (ImGui::Begin("Video Monitor")) {
-      if (colorTable==NULL) buildTable();
-      systemAdvance(&sys,1000);
+      if (colorTable==NULL || shallBuild) {
+        buildTable(wR,wB,uMax,vMax,uFactor,vFactor);
+        if (tex!=NULL) {
+          SDL_DestroyTexture(tex);
+          tex=NULL;
+        }
+        shallBuild=false;
+      }
+      ImGui::InputInt("Clocks/Frame",&clocksPerFrame,1,100);
+
+      if (clocksPerFrame>0) {
+        systemAdvance(&sys,clocksPerFrame);
+      }
+
+      if (sys.vuOutput==VU_SYNC) {
+        ImGui::Text("H: %4d V: %4d O: SYNC S: %d C: %d",sys.framePos&1023,sys.framePos>>10,sys.frameSyncCycles,sys.frameCycles);
+      } else {
+        ImGui::Text("H: %4d V: %4d O: %.4x S: %d C: %d",sys.framePos&1023,sys.framePos>>10,sys.vuOutput,sys.frameSyncCycles,sys.frameCycles);
+      }
+      ImGui::Text("HMODE: %d VMODE: %d HCOUNT: %4d VCOUNT: %4d VSLATCH: %d INIT: %d",sys.vu.hmode,sys.vu.vmode,sys.vu.hcount,sys.vu.vcount,sys.vu.vslatch,sys.vu.initAddr);
 
       if (tex==NULL) {
-        tex=SDL_CreateTexture(sdlRend,SDL_PIXELFORMAT_ABGR8888,SDL_TEXTUREACCESS_STREAMING,1024,576);
+        tex=SDL_CreateTexture(sdlRend,outFormat==3?SDL_PIXELFORMAT_UYVY:SDL_PIXELFORMAT_ARGB8888,SDL_TEXTUREACCESS_STREAMING,outFormat==3?2048:1024,768);
+        if (tex==NULL) {
+          printf("ERROR while creating texture\n");
+        }
       }
       if (tex!=NULL) {
         unsigned int* dataT=NULL;
@@ -179,22 +256,41 @@ int main(int argc, char** argv) {
         if (SDL_LockTexture(tex,NULL,(void**)&dataT,&pitch)!=0) {
           printf("could not lock texture\n");
         } else {
-          for (int i=0; i<1024*576; i++) {
-            dataT[i]=colorTable[sys->frame[i]];
+          for (int i=0; i<1024*768; i++) {
+            dataT[i]=colorTable[sys.frame[i]];
           }
           SDL_UnlockTexture(tex);
         }
 
-        ImGui::ImageButton(tex,ImVec2(1024*dpiScale,576*dpiScale),ImVec2(0,0),ImVec2(1,1),0);
+        //ImGui::Image(tex,ImVec2(1024*dpiScale,768*dpiScale),ImVec2(0,0),ImVec2(1,1));
       }
-
-      ImGui::Text("Hello");
     }
     ImGui::End();
 
     SDL_SetRenderDrawColor(sdlRend,0,0,0,255);
     SDL_RenderClear(sdlRend);
     ImGui::Render();
+    SDL_Rect renderRect, renderPos;
+    renderRect.x=96*(outFormat==3?2:1);
+    renderRect.y=23;
+    renderRect.w=800;
+    renderRect.h=576;
+
+    renderPos.w=renderRect.w;
+    renderPos.h=renderRect.h;
+
+    while (renderPos.w<scrW && renderPos.h<scrH) {
+      renderPos.w+=renderRect.w;
+      renderPos.h+=renderRect.h;
+    }
+    renderPos.w-=renderRect.w;
+    renderPos.h-=renderRect.h;
+
+    renderPos.x=(scrW-renderPos.w)/2;
+    renderPos.y=(scrH-renderPos.h)/2;
+
+    if (outFormat==3) renderRect.w*=2;
+    SDL_RenderCopy(sdlRend,tex,&renderRect,&renderPos);
     ImGui_ImplSDLRenderer_RenderDrawData(ImGui::GetDrawData());
     SDL_RenderPresent(sdlRend);
   }

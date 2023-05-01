@@ -23,7 +23,8 @@ typedef struct {
 
   unsigned short* frame;
   int framePos;
-  short frameSyncCycles;
+  unsigned int frameCyclesCur, frameCycles;
+  short frameSyncCycles, prevFrameSyncCycles;
   unsigned short vuOutput;
   short suOutL, suOutR;
 } s2System;

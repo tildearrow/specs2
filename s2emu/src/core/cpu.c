@@ -1487,7 +1487,7 @@ void cpuClock(s2CPU* cpu) {
     cpu->cycles=cpuInsTiming[cpu->curIns[0]]-1;
   }
   if (!coreReadIns(cpu->core,cpu->pc,cpu->nextIns)) {
-    printf("CPU: couldn't read %.8x for execution!\n",cpu->pc);
+    if (cpu->debug) printf("CPU: couldn't read %.8x for execution!\n",cpu->pc);
     cpu->nextIns[0]=0xfc;
     //_EXCEPTION(3);
   }
