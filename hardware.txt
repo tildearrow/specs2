@@ -67,20 +67,69 @@ during the supposed lifespan of specs2, many revisions of the hardware were made
   - main RAM: 1M
   - sound chip RAM: 8K
   - processor locked to master clock
-- r2: second release after the amiga
-  - main RAM: 2M
+- r2: second release
+  - main RAM: 1M
   - sound chip RAM: 64K
     (this revision mentions the PCM capability in the programmer's manual)
   - processor locked to master clock
 - r3: third release
-  - main RAM: 2M home, 4M business
+  - main RAM: 2M
   - sound chip RAM: 64K
   - processor clocked independently
-    - as such this machine has a 12MHz processor, to combat the Unix workstations
-- r4: final release before specs3
-  - main RAM: 4M home, 8M business
+    - as such this machine has a 12MHz processor
+- r4: final release
+  - main RAM: 4M
   - sound chip RAM: 64K
-  - processor locked to master clock
-    - but running at 1/2 the master clock
-    - as such, it runs at 14.875MHz or 15.45MHz
-  - this revision didn't sell well, due to its locked processor
+  - processor clocked independently
+    - 12MHz like the third revision
+
+# port layout
+
+## back
+
+```
+|----------------------------------------|
+|                                        |
+| ---   --4-- --5--                      |
+| -1-   --2-- --3--  6 7 8 9  A B     C  |
+|----------------------------------------|
+```
+
+- 1: power
+- 2/3/4/5: peripheral ports (DB-25)
+- 6/7/8: video output (BNC, Y/Pb/Pr)
+- 9: composite/sync video input (BNC)
+- A/B: audio output (BNC, L/R)
+- C: keyboard (8-pin Mini-DIN)
+
+## right
+
+```
+|--------------------------------|
+|                                |
+|                                |
+|        -1- -2- -3- -4-  5 6  7 |
+|--------------------------------|
+```
+
+- 1/2/3/4: DE-9 ports
+- 5: TV/monitor switch
+- 6: video mode switch
+- 7: power switch
+
+## front
+
+```
+|----------------------------------------|
+|                                        |
+|             ------1------              |
+|                                      2 |
+|----------------------------------------|
+```
+
+- 1: 5.25" disk drive (3.5" in revision 2 onwards)
+- 2: power LED
+
+# specs2 board
+
+to-do
