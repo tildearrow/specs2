@@ -91,7 +91,7 @@ during the supposed lifespan of specs2, many revisions of the hardware were made
 |----------------------------------------|
 |                                        |
 | ---   --4-- --5--                      |
-| -1-   --2-- --3--  6 7 8 9  A B     C  |
+| -1-   --2-- --3--  6 7 8 9  A   B C D  |
 |----------------------------------------|
 ```
 
@@ -99,8 +99,9 @@ during the supposed lifespan of specs2, many revisions of the hardware were made
 - 2/3/4/5: peripheral ports (DB-25)
 - 6/7/8: video output (BNC, Y/Pb/Pr)
 - 9: composite/sync video input (BNC)
-- A/B: audio output (BNC, L/R)
-- C: keyboard (8-pin Mini-DIN)
+- A: character unit output (6-pin DIN)
+- B/C: audio output (BNC, L/R)
+- D: keyboard (8-pin Mini-DIN)
 
 ## right
 
