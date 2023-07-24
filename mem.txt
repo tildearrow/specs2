@@ -114,7 +114,7 @@ addr | meaning
  $b7 | parallel status 7
  $c0 | EXTBUF 64-byte expansion port space
 
-then at $fe00 there is the initial system loader (ISL) on 256 bytes of mask ROM.
+then at $fe00 there is the initial system loader (ISL) on 256 bytes of ROM.
 this routine copies the BIOS ROM to RAM and jumps there.
 
 parallel status format:
