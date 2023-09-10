@@ -124,7 +124,7 @@ no | clock   | PCM | addr | DAC resolution
   A7 -|10   19|- D6
   WE -|11   18|- D7
      -|12   17|- RESET
-  CS -|13   16|-
+ /CS -|13   16|- IRQ
  IL0 -|14   15|- GND
       +-------+
 ```
