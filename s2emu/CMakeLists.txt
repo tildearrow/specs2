@@ -32,6 +32,7 @@ set(DEPENDENCIES_LINK_OPTIONS "")
 set(DEPENDENCIES_LEGACY_LDFLAGS "")
 
 set(CORE_SOURCES
+src/core/char.c
 src/core/core.c
 src/core/cpu.c
 src/core/sound.c

@@ -7,6 +7,7 @@ extern "C" {
 
 #include "cpu.h"
 #include "core.h"
+#include "char.h"
 #include "video.h"
 #include "sound.h"
 
@@ -16,6 +17,7 @@ typedef struct {
   s2CPU cpu;
   s2Core core;
   s2VideoUnit vu;
+  s2CharUnit cu;
   s2SoundUnit su;
 
   unsigned char* memory;

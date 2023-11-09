@@ -72,7 +72,7 @@ enum s2VideoReg {
 };
 
 // format: width pre-h|post-h up|down height sy0|sy1 sz0 sz1 flags
-unsigned short videoParams[2][2][8]={
+static unsigned short videoParams[2][2][8]={
   // PAL
   {
     {800, 58|(24<<8), 23|(10<<8), 576, 70|(140<<8), 882, 812, 0x00},
@@ -85,14 +85,14 @@ unsigned short videoParams[2][2][8]={
   }
 };
 
-unsigned char shiftTable[4][8]={
+static unsigned char shiftTable[4][8]={
   {0, 0, 0, 0, 0, 0, 0, 0},
   {0, 4, 0, 4, 0, 4, 0, 4},
   {0, 2, 4, 6, 0, 2, 4, 6},
   {0, 1, 2, 3, 4, 5, 6, 7},
 };
 
-unsigned char shiftAndTable[4]={
+static unsigned char shiftAndTable[4]={
   255, 15, 3, 1
 };
 

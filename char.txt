@@ -9,12 +9,15 @@ the first 24KB block contains the characters to be output (128x48 maximum), in t
 addr | description
 -----|--------------------
  $00 | character
- $01 | color
- $02 | background color
- $03 | attributes:
-     | bit 2-6: select page (kanji only)
-     | bit 1: blink background
-     | bit 0: blink text
+ $01 | page/attributes:
+     | bit 7: blink background
+     | bit 6: blink text
+     | bit 0-5: select page
+     | - 0/1: RAM ($6000 and $7000)
+     | - 2: character expansion ROM
+     | - bit 0 is ineffective in 16x16 mode.
+ $02 | color
+ $03 | background color
 
 there are a few special registers at the end of this block:
 
@@ -58,21 +61,27 @@ $5fef| EXTSYN external sync control
      | - bit 0: sync to video chip
 $5ff0| CURX cursor X
 $5ff1| CURY cursor Y
-$5ff2| TSIZEX text width
-$5ff3| TSIZEY text height
+$5ff2| TSIZEX text columns
+$5ff3| TSIZEY text rows (lines)
 $5ff4| TSCRX text offset X
-$5ff5| TSCRY text offset Y
-$5ffa| STATUS internal status (read-only):
-     | - bit 6: putchar advances cursor
+$5ff6| TSCRY text offset Y
+$5ff8| COLBK background color
+$5ff9| TPOS starting line
+$5ffa| STATUS internal status:
+     | - bit 7: show cursor
+     | - bit 6: show text
      | - bit 5: blink status
      | - bit 0-4: blink counter
-$5ffa| FLAGS flags (write-only):
-     | - bit 1: character depth
-     |   - 0: monochrome
-     |   - 1: 3-tone
-     | - bit 0: character size
-     |   - 0: 8x16
-     |   - 1: 16x16 (monochrome only)
+$5ffb| FLAGS flags:
+     | - bit 7: disable color
+     | - bit 6: cursor blink
+     | - bit 5: cursor shape
+     |   - 0: underline
+     |   - 1: block
+     | - bit 4: character width
+     |   - 0: 8
+     |   - 1: 16
+     | - bit 0-3: character height (+1)
 $5ffc| CMD command: when written, the chip
      |          can perform several
      |          operations, listed:
@@ -80,15 +89,13 @@ $5ffc| CMD command: when written, the chip
      | - $01: LF newline
      | - $02: CLR clear screen
      | - $03: CLC clear with color
-     | - $04: PCS putchar static
-     | - $05: PCA putchar advances cursor
-     | - $06: DEL backspace
+     | - $04: DEL backspace
      | - $80: force vsync
      | - $81: force hsync
 $5ffd| PUTCBK putchar background
 $5ffe| PUTCOL putchar color
 $5fff| PUTCHR putchar
 
-the last 8KB block contains the current font in two bit planes.
+the last 8KB block contains the current font (two 8x16 pages).
 
 an optional ROM (e.g. Kanji) may be added for expanding the character set.

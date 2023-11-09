@@ -13,11 +13,12 @@ typedef struct {
   unsigned char cpuClock;
   unsigned char suClock;
 
-  unsigned char isl[256];
-  unsigned short pageTable[16384];
-
   // state
   unsigned short biosPos;
+  signed char curPage;
+
+  unsigned char isl[256];
+  unsigned short pageTable[4][4096];
 
   bool clockCPU;
   bool clockSU;

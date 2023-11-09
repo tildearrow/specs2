@@ -14,7 +14,7 @@ const unsigned char cpuInsAdvance[256]={
   6, 6, 6, 6,
   2, 2, 2, 2,
   2, 3 /* imm */, 6, 6, 6, 6, 6, 2,
-  5 /* imm+addr24 */, 7, 6, 6, 6, 6, 6, 2,
+  5 /* imm+addr24 */, 1, 6, 6, 6, 6, 6, 2,
   2, 2, 2, 2, 2, 2, 2, 2, // < immediate
   2, 3 /* imm */, 2, 3 /* imm */, 2, 3 /* imm */, 1, 1,
 
@@ -27,7 +27,7 @@ const unsigned char cpuInsAdvance[256]={
   6, 6, 6, 6,
   2, 2, 2, 2,
   2, 4 /* imm */, 6, 6, 6, 6, 6, 2,
-  6 /* imm+addr24 */, 7, 6, 6, 6, 6, 6, 2,
+  6 /* imm+addr24 */, 1, 6, 6, 6, 6, 6, 2,
   2, 2, 2, 2, 2, 2, 2, 3, // < immediate
   2, 4 /* imm */, 2, 4 /* imm */, 2, 4 /* imm */, 1, 1,
 
@@ -40,7 +40,7 @@ const unsigned char cpuInsAdvance[256]={
   6, 6, 6, 6,
   2, 2, 2, 2,
   2, 6 /* imm */, 6, 6, 6, 6, 6, 2,
-  8 /* imm+addr24 */, 7, 6, 6, 6, 6, 6, 2,
+  1 /* imm+addr24 */, 1, 6, 6, 6, 6, 6, 2,
   2, 2, 2, 2, 2, 2, 2, 5, // < immediate
   2, 6 /* imm */, 2, 6 /* imm */, 2, 6 /* imm */, 1, 1,
 
@@ -52,7 +52,7 @@ const unsigned char cpuInsAdvance[256]={
   1, 1, 1, 1, 1, 1, 1, 1,
   1, 1, 1, 1, 1, 1, 1, 1,
   1, 1, 1, 1, 2, 2, 2, 2,
-  2, 2, 1, 1, 1, 1, 1, 1
+  2, 2, 1, 1, 1, 2, 2, 2
 };
 
 // operation timing:
@@ -84,7 +84,7 @@ const unsigned char cpuInsTiming[256]={
   1, 1, 1, 1,
   1, 1, 1, 1,
   1, 1, 1, 2, 3, 4, 4, 1,
-  1, 2, 
+  1, 1, 
   1, 2, 3, 4, 4, 1,
   1, 1, 1, 1, 1,
   2, 2, 2,
@@ -99,7 +99,7 @@ const unsigned char cpuInsTiming[256]={
   1, 1, 1, 1,
   1, 1, 1, 1,
   1, 1, 1, 2, 3, 4, 4, 1,
-  1, 2, 
+  1, 1, 
   1, 2, 3, 4, 4, 1,
   1, 1, 1, 1, 1,
   2, 2, 2,
@@ -114,7 +114,7 @@ const unsigned char cpuInsTiming[256]={
   2, 2, 2, 2,
   2, 2, 2, 2,
   1, 1, 2, 3, 4, 5, 5, 2,
-  2, 4, 
+  1, 1, 
   2, 3, 4, 5, 5, 2,
   1, 1, 1, 1, 1,
   2, 2, 2,
@@ -128,8 +128,8 @@ const unsigned char cpuInsTiming[256]={
   1, 1, 1, 1, 1, 1, 1, 2,
   1, 1, 1, 1, 1, 1, 1, 1,
   1, 1, 1, 1, 1, 1, 1, 1,
-  8, 8, 24, 24, 1, 1, 1, 1,
-  1, 1, 1, 1, 1, 1, 1, 1
+  8,24, 8,24, 1, 1, 1, 1,
+  1, 1, 1, 1, 1, 1, 3, 3
 };
 
 const unsigned char cpuRegDest[256]={
@@ -200,6 +200,21 @@ const char* cpuRegNames[8]={
   "z"
 };
 
+const unsigned char cpuCtx[8]={
+  0, 1, 2, 3, 4, 5, 5, 5
+};
+
+const char* cpuCtxNames[8]={
+  "K0",
+  "K1",
+  "K2",
+  "K3",
+  "K4",
+  "K?",
+  "K?",
+  "K?"
+};
+
 #define FLAG_N 0x80
 #define FLAG_D 0x40
 #define FLAG_K 0x20
@@ -249,16 +264,15 @@ void cpuReset(s2CPU* cpu) {
 #define DA_DEST cpuRegNames[cpuRegDest[ptr[1]]]
 #define DA_SRC cpuRegNames[cpuRegSrc[ptr[1]]]
 #define DA_INDEX cpuRegNames[cpuRegIndex[ptr[1]]]
+#define DA_CTX cpuCtxNames[cpuCtx[ptr[1]&7]]
 
 #define DA_IMM_C ptr[2]
 #define DA_IMM_S (ptr[2]|(ptr[3]<<8))
 #define DA_IMM_I (ptr[2]|(ptr[3]<<8)|(ptr[4]<<16)|(ptr[5]<<24))
 #define DA_ADDR (ptr[2]|(ptr[3]<<8)|(ptr[4]<<16))
 #define DA_ADEST (ptr[1]|(ptr[2]<<8)|(ptr[3]<<16))
-#define DA_ASRC (ptr[4]|(ptr[5]<<8)|(ptr[6]<<16))
 #define DA_AIMM_C ptr[4]
 #define DA_AIMM_S (ptr[4]|(ptr[5]<<8))
-#define DA_AIMM_I (ptr[4]|(ptr[5]<<8)|(ptr[6]<<16)|(ptr[7]<<24))
 #define DA_PIMM_C ptr[1]
 #define DA_PIMM_S (ptr[1]|(ptr[2]<<8))
 #define DA_PIMM_I (ptr[1]|(ptr[2]<<8)|(ptr[3]<<16)|(ptr[4]<<24))
@@ -398,9 +412,6 @@ int cpuDisAsm(const unsigned char* ptr, char* str, unsigned int len, unsigned in
 
     case 0x28:
       ret=snprintf(str,len,"movc $%x, #$%.2x",DA_ADEST,DA_AIMM_C);
-      break;
-    case 0x29:
-      ret=snprintf(str,len,"movc $%x, $%x",DA_ADEST,DA_ASRC);
       break;
     case 0x2a:
       ret=snprintf(str,len,"movc $%x, %s",DA_ADDR,DA_DEST);
@@ -612,9 +623,6 @@ int cpuDisAsm(const unsigned char* ptr, char* str, unsigned int len, unsigned in
     case 0x68:
       ret=snprintf(str,len,"movs $%x, #$%.4x",DA_ADEST,DA_AIMM_S);
       break;
-    case 0x69:
-      ret=snprintf(str,len,"movs $%x, $%x",DA_ADEST,DA_ASRC);
-      break;
     case 0x6a:
       ret=snprintf(str,len,"movs $%x, %s",DA_ADDR,DA_DEST);
       break;
@@ -822,12 +830,6 @@ int cpuDisAsm(const unsigned char* ptr, char* str, unsigned int len, unsigned in
       ret=snprintf(str,len,"mov %s, (%s)",DA_DEST,DA_SRC);
       break;
 
-    case 0xa8:
-      ret=snprintf(str,len,"mov $%x, #$%x",DA_ADEST,DA_AIMM_I);
-      break;
-    case 0xa9:
-      ret=snprintf(str,len,"mov $%x, $%x",DA_ADEST,DA_ASRC);
-      break;
     case 0xaa:
       ret=snprintf(str,len,"mov $%x, %s",DA_ADDR,DA_DEST);
       break;
@@ -1095,8 +1097,22 @@ int cpuDisAsm(const unsigned char* ptr, char* str, unsigned int len, unsigned in
       ret=snprintf(str,len,"rcc");
       break;
 
+    case 0xfb:
+      ret=snprintf(str,len,"mov %s, %s",DA_SRC,DA_CTX);
+      break;
+
     case 0xfc:
       ret=snprintf(str,len,"nop");
+      break;
+
+    case 0xfd:
+      ret=snprintf(str,len,"mov %s, %s",DA_CTX,DA_SRC);
+      break;
+    case 0xfe:
+      ret=snprintf(str,len,"store %s",DA_CTX);
+      break;
+    case 0xff:
+      ret=snprintf(str,len,"rec %s",DA_CTX);
       break;
 
     default:
@@ -1110,6 +1126,7 @@ int cpuDisAsm(const unsigned char* ptr, char* str, unsigned int len, unsigned in
 #define _DEST cpuRegDest[cpu->curIns[1]]
 #define _SRC cpuRegSrc[cpu->curIns[1]]
 #define _INDEX cpuRegIndex[cpu->curIns[1]]
+#define _CTX cpuCtx[cpu->curIns[1]&7]
 #define _ADDR (cpu->curIns[2]|(cpu->curIns[3]<<8)|(cpu->curIns[4]<<16)|(cpu->curIns[5]<<24))
 #define _ADDR_DIRECT (cpu->curIns[1]|(cpu->curIns[2]<<8)|(cpu->curIns[3]<<16))
 #define _ADDR_DIRECT2 (cpu->curIns[4]|(cpu->curIns[5]<<8)|(cpu->curIns[6]<<16))
@@ -1668,16 +1685,6 @@ void cpuClock(s2CPU* cpu) {
         break;
       }
       break;
-    case 0x29: // movc $dest, $src
-      if (!coreRead8(cpu->core,_ADDR_DIRECT2,&operand.c)) {
-        _EXCEPTION(1);
-        break;
-      }
-      if (!coreWrite8(cpu->core,_ADDR_DIRECT,operand.c)) {
-        _EXCEPTION(2);
-        break;
-      }
-      break;
 
     case 0x2a: // movc $addr, R
       if (!coreWrite8(cpu->core,_ADDR,cpu->reg[_DEST].c)) {
@@ -2075,16 +2082,6 @@ void cpuClock(s2CPU* cpu) {
         break;
       }
       break;
-    case 0x69: // movs $dest, $src
-      if (!coreRead16(cpu->core,_ADDR_DIRECT2,&operand.s)) {
-        _EXCEPTION(1);
-        break;
-      }
-      if (!coreWrite16(cpu->core,_ADDR_DIRECT,operand.s)) {
-        _EXCEPTION(2);
-        break;
-      }
-      break;
 
     case 0x6a: // movs $addr, R
       if (!coreWrite16(cpu->core,_ADDR,cpu->reg[_DEST].s)) {
@@ -2473,24 +2470,6 @@ void cpuClock(s2CPU* cpu) {
     case 0xa7: // mov R, (R)
       _OP_PTR_REG_I;
       _MOV(cpu->reg[_DEST].i,operand.i,0x80000000);
-      break;
-
-    case 0xa8: // mov $dest, #$val
-      operand.i=cpu->curIns[4]|(cpu->curIns[5]<<8)|(cpu->curIns[6]<<16)|(cpu->curIns[7]<<24);
-      if (!coreWrite32(cpu->core,_ADDR_DIRECT,operand.i)) {
-        _EXCEPTION(2);
-        break;
-      }
-      break;
-    case 0xa9: // mov $dest, $src
-      if (!coreRead32(cpu->core,_ADDR_DIRECT2,&operand.i)) {
-        _EXCEPTION(1);
-        break;
-      }
-      if (!coreWrite32(cpu->core,_ADDR_DIRECT,operand.i)) {
-        _EXCEPTION(2);
-        break;
-      }
       break;
 
     case 0xaa: // mov $addr, R
@@ -3003,7 +2982,7 @@ void cpuClock(s2CPU* cpu) {
       cpu->sp=cpu->reg[_DEST].i;
       break;
     case 0xf6: // movc R, F
-      operand.i=cpu->sp;
+      operand.c=cpu->flags;
       cpu->reg[_DEST].c=cpu->flags;
       break;
     case 0xf7: // mov R, PC
@@ -3022,7 +3001,59 @@ void cpuClock(s2CPU* cpu) {
       cpu->cc=0;
       break;
 
+    case 0xfb: // mov R, K
+      if (_CTX>4) {
+        _EXCEPTION(11);
+        break;
+      }
+      cpu->reg[_SRC].i=cpu->ctx[_CTX].reg[_SRC].i;
+      break;
+
     case 0xfc: // nop
+      break;
+
+    case 0xfd: // mov K, R
+      if (_CTX>4) {
+        _EXCEPTION(11);
+        break;
+      }
+      cpu->ctx[_CTX].reg[_SRC].i=cpu->reg[_SRC].i;
+      break;
+    case 0xfe: // store K
+      if (_CTX>4) {
+        _EXCEPTION(11);
+        break;
+      }
+      cpu->ctx[_CTX].reg[0].i=cpu->reg[0].i;
+      cpu->ctx[_CTX].reg[1].i=cpu->reg[1].i;
+      cpu->ctx[_CTX].reg[2].i=cpu->reg[2].i;
+      cpu->ctx[_CTX].reg[3].i=cpu->reg[3].i;
+      cpu->ctx[_CTX].reg[4].i=cpu->reg[4].i;
+      cpu->ctx[_CTX].reg[5].i=cpu->reg[5].i;
+      cpu->ctx[_CTX].reg[6].i=cpu->reg[6].i;
+      cpu->ctx[_CTX].reg[7].i=cpu->reg[7].i;
+      cpu->ctx[_CTX].sp=cpu->sp;
+      cpu->ctx[_CTX].st=cpu->st;
+      cpu->ctx[_CTX].sb=cpu->sb;
+      cpu->ctx[_CTX].flags=cpu->flags;
+      break;
+    case 0xff: // rec K
+      if (_CTX>4) {
+        _EXCEPTION(11);
+        break;
+      }
+      cpu->reg[0].i=cpu->ctx[_CTX].reg[0].i;
+      cpu->reg[1].i=cpu->ctx[_CTX].reg[1].i;
+      cpu->reg[2].i=cpu->ctx[_CTX].reg[2].i;
+      cpu->reg[3].i=cpu->ctx[_CTX].reg[3].i;
+      cpu->reg[4].i=cpu->ctx[_CTX].reg[4].i;
+      cpu->reg[5].i=cpu->ctx[_CTX].reg[5].i;
+      cpu->reg[6].i=cpu->ctx[_CTX].reg[6].i;
+      cpu->reg[7].i=cpu->ctx[_CTX].reg[7].i;
+      cpu->sp=cpu->ctx[_CTX].sp;
+      cpu->st=cpu->ctx[_CTX].st;
+      cpu->sb=cpu->ctx[_CTX].sb;
+      cpu->flags=cpu->ctx[_CTX].flags;
       break;
 
     default: // illegal instruction

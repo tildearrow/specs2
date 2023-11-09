@@ -5,6 +5,7 @@
 void systemInit(s2System* sys, unsigned int memCapacity) {
   coreInit(&sys->core);
   cpuInit(&sys->cpu,&sys->core);
+  cuInit(&sys->cu);
   vuInit(&sys->vu,65536);
   suInit(&sys->su,8192,false);
 

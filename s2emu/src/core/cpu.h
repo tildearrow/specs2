@@ -35,6 +35,12 @@ typedef struct {
   unsigned char divBusy;
 
   unsigned char cycles;
+
+  struct {
+    s2CPURegister reg[8];
+    unsigned int sp, st, sb;
+    unsigned char flags;
+  } ctx[5];
 } s2CPU;
 
 void cpuInit(s2CPU* cpu, s2Core* core);

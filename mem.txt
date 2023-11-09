@@ -2,39 +2,36 @@
 
 the core chip features a memory management unit, a fast memory copier/filler, timers, RTC and I/O.
 
-the first 32KB are for page tables, of which 8KB are taken by the kernel (an application in extended mode).
-the user then can run up to 24 processes without slowdowns.
+the first 32KB stores 4 page tables.
+each page table is 8KB and contains 4096 entries for 4KB pages.
 
 the next 256 bytes are for the main registers:
 
 addr | meaning
 -----|--------------
- $00 | PAGE current page (0-1024)
+ $00 | PAGE current page (0-3)
      | - page 0 maps to the kernel
- $02 | PGCACHE cached pages (3)
+     | - taRT uses page 1 for the real-time task
  $0e | EX exception code
  $0f | IRQ IRQ number
  $10 | TIM0-TIM7 32-bit timers (set)
      | - there are 8 timers
-     | - NOTE: timer 7 is reserved for the system
+     | - timer 7 is reserved by taRT
  $30 | TIMS0-TIMS7 timer flags (8):
      | - bit 2: loop
      | - bit 1: generate interrupt
      | - bit 0: active
  $38 | VOUT select video output
-     | - 0: character unit
-     | - 1: video unit
+     | - bit 0: character unit
+     | - bit 1: video unit
+     | - beware when enabling both outputs!
  $3f | ENGAGE switch paging mode:
      | - at power on, the system starts in
      |   unpaged state
      | - writing to this register immediately switches to paged state
  $40 | TIMR0-TIMR7 32-bit timers (read)
  $60 | RTCREAD real-time clock:
-     | - clocked at 24576Hz
-     | - reading may take some cycles
-     | - therefore it is recommended to
-     |   use the RTC interrupt for reading
-     |   instead
+     | - clocked at 32768Hz
      | - the structure is as follows:
      |   - a 48-bit unix timestamp
      |     (yes, we are future-proof)
@@ -125,7 +122,7 @@ parallel status format:
 
 the format of a page is:
 - bit 4-15: address
-- bit 3: unused (if this is the first page, extended mode)
+- bit 3: unused
 - bit 2: execute
 - bit 1: write
 - bit 0: read
@@ -172,7 +169,7 @@ id | description
 48 | expansion IRQ
 
 the core chip has several buses:
-- one 64-bit bus for instruction data (24-bit address)
+- one 48-bit bus for instruction data (24-bit address)
 - one 32-bit bus for processor I/O data (24-bit address)
 - one 32-bit bus for the memory copier
 - one 16-bit bus for system I/O operations (including memory)
@@ -183,5 +180,5 @@ the chip is clocked at the same rate as the video chip:
 
 data transfer is done using time-division multiplexing:
 
-- instruction read takes 4 cycles
+- instruction read takes 3 cycles
 - I/O takes 1 cycle for char/short and 2 cycles for int

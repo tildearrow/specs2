@@ -43,6 +43,7 @@ void coreReset(s2Core* core) {
 
   // state
   core->biosPos=0;
+  core->curPage=-1;
 }
 
 void coreSetMemory(s2Core* core, unsigned char* memory, unsigned int capacity) {
@@ -108,9 +109,9 @@ bool coreReadCtrl(s2Core* core, unsigned int addr, unsigned char* out) {
 
   // page table
   if (addr&1) {
-    *out=core->pageTable[addr>>1]>>8;
+    *out=core->pageTable[0][addr>>1]>>8;
   } else {
-    *out=core->pageTable[addr>>1];
+    *out=core->pageTable[0][addr>>1];
   }
   return true;
 }
@@ -133,19 +134,25 @@ bool coreWriteCtrl(s2Core* core, unsigned int addr, unsigned char val) {
 
   // page table
   if (addr&1) {
-    core->pageTable[addr>>1]&=0xff;
-    core->pageTable[addr>>1]|=val<<8;
+    core->pageTable[0][addr>>1]&=0xff;
+    core->pageTable[0][addr>>1]|=val<<8;
   } else {
-    core->pageTable[addr>>1]&=0xff00;
-    core->pageTable[addr>>1]|=val;
+    core->pageTable[0][addr>>1]&=0xff00;
+    core->pageTable[0][addr>>1]|=val;
   }
   return true;
 }
 
-// MMU currently not implemented.
+#define PAGE_MAP(x) \
+  if (core->curPage>=0) { \
+    const short page=core->pageTable[core->curPage][addr>>12]; \
+    if (!(page&x)) return false; \
+    addr=(addr&0xfff)|((page&0xfff0)<<8); \
+  }
 
 bool coreRead8(s2Core* core, unsigned int addr, unsigned char* out) {
   addr&=0xffffff;
+  PAGE_MAP(1);
 
   if (addr>=0xff0000) { // core
     return coreReadCtrl(core,addr,out);
@@ -161,8 +168,8 @@ bool coreRead8(s2Core* core, unsigned int addr, unsigned char* out) {
 
 bool coreRead16(s2Core* core, unsigned int addr, unsigned short* out) {
   addr&=0xffffff;
-
   if (addr&1) return false;
+  PAGE_MAP(1);
 
   if (addr>=0xff0000) { // core
     if (!coreReadCtrl(core,addr,(unsigned char*)out)) return false;
@@ -180,8 +187,8 @@ bool coreRead16(s2Core* core, unsigned int addr, unsigned short* out) {
 
 bool coreRead32(s2Core* core, unsigned int addr, unsigned int* out) {
   addr&=0xffffff;
-
   if (addr&3) return false;
+  PAGE_MAP(1);
 
   if (addr>=0xff0000) { // core
     if (!coreReadCtrl(core,addr,(unsigned char*)out)) return false;
@@ -201,6 +208,7 @@ bool coreRead32(s2Core* core, unsigned int addr, unsigned int* out) {
 
 bool coreReadIns(s2Core* core, unsigned int addr, unsigned char* out) {
   addr&=0xffffff;
+  PAGE_MAP(4);
 
   if (addr>=0xffff00) {
     return false;
@@ -236,6 +244,7 @@ bool coreReadIns(s2Core* core, unsigned int addr, unsigned char* out) {
 
 bool coreWrite8(s2Core* core, unsigned int addr, unsigned char val) {
   addr&=0xffffff;
+  PAGE_MAP(2);
 
   if (addr>=0xff0000) { // core
     return coreWriteCtrl(core,addr,val);
@@ -251,8 +260,8 @@ bool coreWrite8(s2Core* core, unsigned int addr, unsigned char val) {
 
 bool coreWrite16(s2Core* core, unsigned int addr, unsigned short val) {
   addr&=0xffffff;
-
   if (addr&1) return false;
+  PAGE_MAP(2);
 
   if (addr>=0xff0000) { // core
     if (!coreWriteCtrl(core,addr,val)) return false;
@@ -270,8 +279,8 @@ bool coreWrite16(s2Core* core, unsigned int addr, unsigned short val) {
 
 bool coreWrite32(s2Core* core, unsigned int addr, unsigned int val) {
   addr&=0xffffff;
-
   if (addr&3) return false;
+  PAGE_MAP(2);
 
   if (addr>=0xff0000) { // core
     if (!coreWriteCtrl(core,addr,val)) return false;

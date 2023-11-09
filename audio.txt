@@ -30,8 +30,8 @@ addr | meaning
      |   - 3: triangle
      |   - 4: noise
      |   - 5: fixed noise
-     |   - 6: fixed noise (duty 5)
-     |   - 7: none
+     |   - 6: special 1
+     |   - 7: special 2
  $06 | CUT0 cutoff
  $08 | DUTY0 duty
  $09 | RES0 resonance

@@ -66,9 +66,22 @@ special registers:
   - 8: call stack overflow
   - 9: illegal halt 
   - 10: user exception
+  - 11: invalid context
 - IR: interrupt request code (8-bit)
 - EV: exception handling vector
 - IV: interrupt vector table pointer
+
+# context
+
+the processor has the ability to recall and store "contexts" - copies of all registers.
+
+there are five contexts:
+
+- K0: kernel mode context
+- K1: user context 1
+- K2: user context 2
+- K3: user context 3
+- K4: user context 4
 
 # prefetching
 
@@ -107,159 +120,162 @@ instructions are categorized by groups:
 
 # operations
 
-## add
+encoding format:
+- ?: unused
+- r: source register
+- R: destination register
+- I: index register
+- i: immediate value
+- a: address
+- d: shift direction/amount
+  - upper bit selects direction (left if set, right if clear)
+  - lower bits are amount/register
+- F: shift special
+  - upper bit selects fixed (set) or register (clear) mode
 
-- register:
-  - `00`: addc R, R
-  - `40`: adds R, R
-  - `80`: add  R, R
-- immediate:
-  - `01`: addc R, #$val
-  - `41`: adds R, #$val
-  - `81`: add  R, #$val
-- absolute:
-  
-- indexed:
-- indirect absolute:
-- indirect offset:
-- indirect indexed:
-- indirect register:
+val | instruction       | t | encoding
+----|-------------------|---|------------
+ 80 | add R, R          | 1 | rR
+ 81 | add R, #$val      | 1 | ?R iiiiiiii
+ 82 | add R, $val       | 2 | ?R aaaaaaaa
+ 83 | add R, $val+R     | 3 | IR aaaaaaaa
+ 84 | add R, ($val)     | 4 | ?R aaaaaaaa
+ 85 | add R, ($val)+R   | 5 | IR aaaaaaaa
+ 86 | add R, ($val+R)   | 5 | IR aaaaaaaa
+ 87 | add R, (R)        | 2 | rR
+ 88 | sub R, R          | 1 | rR
+ 89 | sub R, #$val      | 1 | ?R iiiiiiii
+ 8a | sub R, $val       | 2 | ?R aaaaaaaa
+ 8b | sub R, $val+R     | 3 | IR aaaaaaaa
+ 8c | sub R, ($val)     | 4 | ?R aaaaaaaa
+ 8d | sub R, ($val)+R   | 5 | IR aaaaaaaa
+ 8e | sub R, ($val+R)   | 5 | IR aaaaaaaa
+ 8f | sub R, (R)        | 2 | rR
+ 90 | and R, R          | 1 | rR
+ 91 | or R, R           | 1 | rR
+ 92 | xor R, R          | 1 | rR
+ 93 | cmp R, R          | 1 | rR
+ 94 | and R, #$val      | 1 | ?R iiiiiiii
+ 95 | or R, #$val       | 1 | ?R iiiiiiii
+ 96 | xor R, #$val      | 1 | ?R iiiiiiii
+ 97 | cmp R, #$val      | 1 | ?R iiiiiiii
+ 98 | and R, $addr      | 2 | ?R aaaaaaaa
+ 99 | or R, $addr       | 2 | ?R aaaaaaaa
+ 9a | xor R, $addr      | 2 | ?R aaaaaaaa
+ 9b | cmp R, $addr      | 2 | ?R aaaaaaaa
+ 9c | and R, (R)        | 2 | rR
+ 9d | or R, (R)         | 2 | rR
+ 9e | xor R, (R)        | 2 | rR
+ 9f | cmp R, (R)        | 2 | rR
+ a0 | mov R, R          | 1 | rR
+ a1 | mov R, #$val      | 1 | ?R iiiiiiii
+ a2 | mov R, $addr      | 2 | ?R aaaaaaaa
+ a3 | mov R, $addr+R    | 3 | IR aaaaaaaa
+ a4 | mov R, ($addr)    | 4 | ?R aaaaaaaa
+ a5 | mov R, ($addr)+R  | 5 | IR aaaaaaaa
+ a6 | mov R, ($addr+R)  | 5 | IR aaaaaaaa
+ a7 | mov R, (R)        | 2 | rR
+ a8 | mov $dest, #$val  | 1 |
+ a9 |                   |   |
+ aa | mov $addr, R      | 2 | ?R aaaaaaaa
+ ab | mov $addr+R, R    | 3 | IR aaaaaaaa
+ ac | mov ($addr), R    | 4 | ?R aaaaaaaa
+ ad | mov ($addr)+R, R  | 5 | IR aaaaaaaa
+ ae | mov ($addr+R), R  | 5 | IR aaaaaaaa
+ af | mov (R), R        | 2 | rR
+ b0 | sha R             | 1 | dF
+ b1 | shl R             | 1 | dF
+ b2 | rol R, R          | 1 | rF
+ b3 | ror R, R          | 1 | rF
+ b4 | swp R, R          | 1 | rR
+ b5 | push R            | 2 | ?R
+ b6 | pop R             | 2 | ?R
+ b7 | push #$val        | 2 | iiiiiiii
+ b8 | mul R, R          | 4 | rR
+ b9 | mul R, #$val      | 4 | ?R iiiiiiii
+ ba | mulu R, R         | 4 | rR
+ bb | mulu R, #$val     | 4 | ?R iiiiiiii
+ bc | div R, R          | 1*| rR
+ bd | div R, #$val      | 1*| ?R iiiiiiii
+ be | divq R            | 1 | ?R
+ bf | divr R            | 1 | ?R
 
-unfinished!!!!!
-
-instruction                     opcode
-------------------------------------------
-add R, R                        $80
-add R, #$val                    $81
-add R, $val                     $82
-add R, $val+R                   $83
-add R, ($val)                   $84
-add R, ($val)+R                 $85
-add R, ($val+R)                 $86
-add R, (R)                      $87
-sub R, R                        $88
-sub R, #$val                    $89
-sub R, $val                     $8a
-sub R, $val+R                   $8b
-sub R, ($val)                   $8c
-sub R, ($val)+R                 $8d
-sub R, ($val+R)                 $8e
-sub R, (R)                      $8f
-and R, R                        $90
-or R, R                         $91
-xor R, R                        $92
-cmp R, R                        $93
-and R, #$val                    $94
-or R, #$val                     $95
-xor R, #$val                    $96
-cmp R, #$val                    $97
-and R, $addr                    $98
-or R, $addr                     $99
-xor R, $addr                    $9a
-cmp R, $addr                    $9b
-and R, (R)                      $9c
-or R, (R)                       $9d
-xor R, (R)                      $9e
-cmp R, (R)                      $9f
-mov R, R                        $a0
-mov R, #$val                    $a1
-mov R, $addr                    $a2
-mov R, $addr+R                  $a3
-mov R, ($addr)                  $a4
-mov R, ($addr)+R                $a5
-mov R, ($addr+R)                $a6
-mov R, (R)                      $a7
-mov $dest, #$val                $a8
-mov $dest, $src                 $a9
-mov $addr, R                    $aa
-mov $addr+R, R                  $ab
-mov ($addr), R                  $ac
-mov R, ($addr)+R                $ad
-mov R, ($addr+R)                $ae
-mov (R), R                      $af
-sha R                           $b0
-shl R                           $b1
-rol R, R                        $b2
-ror R, R                        $b3
-swp R, R                        $b4
-push R                          $b5
-pop R                           $b6
-push #$val                      $b7
-mul R, R                        $b8
-mul R, #$val                    $b9
-mulu R, R                       $ba
-mulu R, #$val                   $bb
-div R, R                        $bc
-div R, #$val                    $bd
-divq R                          $be
-divr R                          $bf
-
+(*) only sets division state
 
 # conditions/special
 
-instruction                     opcode
-------------------------------------------
-beq $off                        $c0
-bne $off                        $c1
-bmi $off                        $c2
-bpl $off                        $c3
-bcs $off                        $c4
-bcc $off                        $c5
-loopc $off                      $c6
-loops $off                      $c7
-bbs R.#b, $off                  $c8
-bbc R.#b, $off                  $c9
-bbs R.R, $off                   $ca
-bbc R.R, $off                   $cb
-mov R, EX                       $cc
-mov R, IR                       $cd
-loop $off                       $ce
-bra $off                        $cf
-jmp $addr                       $d0
-jmp ($addr)                     $d1
-jsr $addr                       $d2
-jsr ($addr)                     $d3
-extc R                          $d4
-exts R                          $d5
-mov EV, R                       $d6
-mov IV, R                       $d7
-mov R, ST                       $d8
-mov ST, R                       $d9
-mov R, SB                       $da
-mov SB, R                       $db
-flush                           $dc
-brk                             $dd
-hlt                             $de
-ret                             $df
-set n                           $e0
-set d                           $e1
-set k                           $e2
-set e                           $e3
-set f                           $e4
-set i                           $e5
-set z                           $e6
-set c                           $e7
-clr n                           $e8
-clr d                           $e9
-clr k                           $ea
-clr e                           $eb
-clr f                           $ec
-clr i                           $ed
-clr z                           $ee
-clr c                           $ef
-pushds                          $f0
-pushall                         $f1
-popds                           $f2
-popall                          $f3
-mov R, SP                       $f4
-mov SP, R                       $f5
-movc R, F                       $f6
-mov R, PC                       $f7
-lcc R                           $f8
-scc R                           $f9
-rcc                             $fa
-                                $fb
-nop                             $fc
-                                $fd
-                                $fe
-                                $ff
+encoding format:
+- ?: unused
+- r: source register
+- R: destination register
+- o: offset (signed)
+- b: bit (takes one bit from next nibble so it can cover 32 values)
+- a: address
+- K: context
+
+val | instruction       | t | encoding
+----|-------------------|---|------------
+ c0 | beq $off          | 1 | oooo
+ c1 | bne $off          | 1 | oooo
+ c2 | bmi $off          | 1 | oooo
+ c3 | bpl $off          | 1 | oooo
+ c4 | bcs $off          | 1 | oooo
+ c5 | bcc $off          | 1 | oooo
+ c6 | loopc $off        | 1 | oooo
+ c7 | loops $off        | 1 | oooo
+ c8 | bbs R.#b, $off    | 1 | bR oooo
+ c9 | bbc R.#b, $off    | 1 | bR oooo
+ ca | bbs R.R, $off     | 1 | rR oooo
+ cb | bbc R.R, $off     | 1 | rR oooo
+ cc | mov R, EX         | 1 | ?R
+ cd | mov R, IR         | 1 | ?R
+ ce | loop $off         | 1 | oooo
+ cf | bra $off          | 1 | oooo
+ d0 | jmp $addr         | 1 | aaaaaaaa
+ d1 | jmp ($addr)       | 2 | aaaaaaaa
+ d2 | jsr $addr         | 2 | aaaaaaaa
+ d3 | jsr ($addr)       | 4 | aaaaaaaa
+ d4 | extc R            | 1 | ?R
+ d5 | exts R            | 1 | ?R
+ d6 | mov EV, R         | 1 | ?R
+ d7 | mov IV, R         | 1 | ?R
+ d8 | mov R, ST         | 1 | ?R
+ d9 | mov ST, R         | 1 | ?R
+ da | mov R, SB         | 1 | ?R
+ db | mov SB, R         | 1 | ?R
+ dc | flush             | 1 |
+ dd | brk               | 1 |
+ de | hlt               | 1 |
+ df | ret               | 2 |
+ e0 | set n             | 1 |
+ e1 | set d             | 1 |
+ e2 | set k             | 1 |
+ e3 | set e             | 1 |
+ e4 | set f             | 1 |
+ e5 | set i             | 1 |
+ e6 | set z             | 1 |
+ e7 | set c             | 1 |
+ e8 | clr n             | 1 |
+ e9 | clr d             | 1 |
+ ea | clr k             | 1 |
+ eb | clr e             | 1 |
+ ec | clr f             | 1 |
+ ed | clr i             | 1 |
+ ee | clr z             | 1 |
+ ef | clr c             | 1 |
+ f0 | pushds            | 8 |
+ f1 | pushall           |24 |
+ f2 | popds             | 8 |
+ f3 | popall            |24 |
+ f4 | mov R, SP         | 1 | ?R
+ f5 | mov SP, R         | 1 | ?R
+ f6 | movc R, F         | 1 | ?R
+ f7 | mov R, PC         | 1 | ?R
+ f8 | lcc R             | 1 | ?R
+ f9 | scc R             | 1 | ?R
+ fa | rcc               | 1 |
+ fb | mov R, K          | 1 | rK
+ fc | nop               | 1 |
+ fd | mov K, R          | 1 | ?K
+ fe | store K           | 3 | ?K
+ ff | rec K             | 3 | ?K
