@@ -129,7 +129,7 @@ bool initGUI() {
   SDL_SetHint(SDL_HINT_TOUCH_MOUSE_EVENTS,"0");
   // don't disable compositing on KWin
 #if SDL_VERSION_ATLEAST(2,0,22)
-  logV("setting window type to NORMAL.");
+  //logV("setting window type to NORMAL.");
   SDL_SetHint(SDL_HINT_X11_WINDOW_TYPE,"_NET_WM_WINDOW_TYPE_NORMAL");
 #endif
 
@@ -307,6 +307,9 @@ int main(int argc, char** argv) {
           break;
         case 2:
           memRegion=sys.vu.mem;
+          break;
+        case 3:
+          memRegion=sys.cu.mem;
           break;
       }
 
