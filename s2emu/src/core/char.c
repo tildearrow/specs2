@@ -51,6 +51,14 @@ void cuInit(s2CharUnit* cu) {
   cuReset(cu,0);
 }
 
+void cuSetPalette(s2CharUnit* cu, unsigned short* pal) {
+  memcpy(cu->color,pal,256*sizeof(short));
+}
+
+void cuSetFont(s2CharUnit* cu, unsigned char* font) {
+  cu->font=font;
+}
+
 // toggles:
 // 1: TV mode (15KHz interlaced)
 // 0: NTSC/PAL (NTSC if on)
@@ -122,10 +130,12 @@ unsigned short cuClockBlank(s2CharUnit* cu) {
 unsigned short cuClock(s2CharUnit* cu) {
   if (cu->initAddr) {
     cu->mem[--cu->initAddr]=0;
+    if (cu->initAddr>=0x6000 && cu->font) {
+      cu->mem[cu->initAddr]=cu->font[cu->initAddr&0xfff];
+    }
     if (!cu->initAddr) {
       // initialize video timings
       memcpy(cu->mem+0x5fe0,videoParams[cu->toggle&1][(cu->toggle&2)>>1],16);
-      // TODO: load font
     }
     return CU_SYNC;
   }

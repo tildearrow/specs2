@@ -26,6 +26,10 @@ typedef struct {
 
   unsigned char toggle;
 
+  // character
+  signed char curRow, curCol;
+  short pauseX, pauseY;
+
   unsigned short color[256];
 
   unsigned char* font;

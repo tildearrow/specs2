@@ -18,6 +18,9 @@ void systemInit(s2System* sys, unsigned int memCapacity) {
   sys->prevFrameSyncCycles=0;
   sys->frameCycles=0;
   sys->frameCyclesCur=0;
+  sys->vuOutput=0;
+  sys->cuOutput=0;
+  sys->videoOut=0;
 
   coreSetMemory(&sys->core,sys->memory,sys->memCapacity);
 
@@ -35,14 +38,51 @@ void systemInit(s2System* sys, unsigned int memCapacity) {
     fclose(biosf);
     coreSetBIOS(&sys->core,bios,biosLen);
   }
+
+  printf("reading char palette...\n");
+  FILE* palf=fopen("palette.bin","rb");
+  if (palf==NULL) {
+    perror("couldn't open palette.bin");
+  } else {
+    fseek(palf,0,SEEK_END);
+    unsigned int palLen=ftell(palf);
+    if (palLen>512) palLen=512;
+    unsigned short* pal=malloc(512);
+    fseek(palf,0,SEEK_SET);
+    fread(pal,1,palLen,palf);
+    fclose(palf);
+    cuSetPalette(&sys->cu,pal);
+    free(pal);
+  }
+
+  printf("reading char font...\n");
+  FILE* fontf=fopen("font0.bin","rb");
+  if (fontf==NULL) {
+    perror("couldn't open font0.bin");
+  } else {
+    fseek(fontf,0,SEEK_END);
+    unsigned int fontLen=ftell(fontf);
+    if (fontLen>4096) fontLen=4096;
+    unsigned char* font=malloc(4096);
+    fseek(fontf,0,SEEK_SET);
+    fread(font,1,fontLen,fontf);
+    fclose(fontf);
+    cuSetFont(&sys->cu,font);
+  }
 }
 
 void systemAdvance(s2System* sys, unsigned int cycles) {
+  //static unsigned short vuOut;
+  static unsigned short cuOut;
   do {
     coreClock(&sys->core);
-    unsigned short newOut=vuClock(&sys->vu);
-    if (newOut!=VU_HOLD) {
-      sys->vuOutput=newOut;
+    //vuOut=vuClock(&sys->vu);
+    cuOut=cuClock(&sys->cu);
+    /*if (vuOut!=VU_HOLD) {
+      sys->vuOutput=vuOut;
+    }*/
+    if (cuOut!=CU_HOLD) {
+      sys->videoOut=cuOut;
     }
     if (sys->core.clockCPU) cpuClock(&sys->cpu);
     if (sys->core.clockSU) suClock(&sys->su,&sys->suOutL,&sys->suOutR);
@@ -50,7 +90,7 @@ void systemAdvance(s2System* sys, unsigned int cycles) {
     sys->frameCyclesCur++;
 
     // terrible sync detection code
-    if (sys->vuOutput==VU_SYNC) {
+    if (sys->videoOut==VU_SYNC) {
       sys->prevFrameSyncCycles=sys->frameSyncCycles;
       if (++sys->frameSyncCycles>32 && sys->prevFrameSyncCycles<=32) {
         sys->framePos=(sys->framePos+1023)&(~1023);
@@ -68,7 +108,7 @@ void systemAdvance(s2System* sys, unsigned int cycles) {
       if (sys->frameSyncCycles<0) sys->frameSyncCycles=0;
     }
     if (sys->framePos>=0 && sys->framePos<1024*768) {
-      sys->frame[sys->framePos]=sys->vuOutput;
+      sys->frame[sys->framePos]=sys->videoOut;
     }
     if (++sys->framePos>1024*768) {
       sys->framePos=0;
@@ -80,6 +120,7 @@ void systemReset(s2System* sys) {
   coreReset(&sys->core);
   cpuReset(&sys->cpu);
   vuReset(&sys->vu,0);
+  cuReset(&sys->cu,0);
   suReset(&sys->su);
 }
 

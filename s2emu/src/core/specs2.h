@@ -27,7 +27,7 @@ typedef struct {
   int framePos;
   unsigned int frameCyclesCur, frameCycles;
   short frameSyncCycles, prevFrameSyncCycles;
-  unsigned short vuOutput;
+  unsigned short vuOutput, cuOutput, videoOut;
   short suOutL, suOutR;
 } s2System;
 

@@ -27,7 +27,7 @@ int main(int argc, char** argv) {
     systemAdvance(&sys,595000);
     curFrame=SCNow();
     long total=durationCast<SCMicro>(curFrame-lastFrame).count();
-    //printf("update took %ldμs\n",total);
+    printf("update took %ldμs\n",total);
     if (total<20000) usleep(20000-total);
   }
 
