@@ -1,26 +1,17 @@
 # box info
 
-there are 2 box editions: home and business.
-
-contents of home box:
-
-- the specs2 computer
-- a composite adapter and RF modulator
-- BNC to RCA cables for audio
-
-contents of business box:
+contents of box:
 
 - the specs2 computer
 - BNC cables for Y/U/V video
 - BNC to RCA cables for audio
-- a composite adapter and RF modulator
 - a component adapter (basically a BNC to RCA converter)
 
-# hardware info
+# region info
 
-there are many versions of the specs2 computer available, released by region.
+there is only a single version of the specs2 computer, but different releases for each region.
 
-the only differences between versions are the initial value of the composite adapter signal type, the inclusion of an extra character ROM chip, the initial clock speed and TV system.
+the only differences are the inclusion of an extra character ROM chip, the initial clock speed and TV system.
 
 the versions are:
 
@@ -50,11 +41,10 @@ composite adapter default TV system:
 
 (D version also comes with a SECAM adapter)
 
-char chip:
+character unit expansion ROM:
 
-- standard: A, B, C, D
-- with kana: E
-- with kana+kanji ROM: F
+- none: A, B, C, D, E
+- kanji ROM: F
 - chinese ROM: G
 - hangul: H
 
@@ -131,6 +121,12 @@ during the supposed lifespan of specs2, many revisions of the hardware were made
 - 1: 5.25" disk drive (3.5" in revision 2 onwards)
 - 2: power LED
 
-# specs2 board
+# hardware info
 
-to-do
+the specs2 board contains the following ICs:
+
+- Core (MMU, DMA, RTC, timers and I/O)
+- CPU (you know what this is)
+- Character Unit (text output)
+- Video Unit (graphics output)
+- Sound Unit (sound output)
