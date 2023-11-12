@@ -65,20 +65,20 @@ addr | meaning
  $8b | CPYSTAT memory copier/filler status
      | - bit 0: busy
  $8c | CPYPER memory copier/filler wait time (16-bit)
- $90 | PTMODE de-9 port mode bits
+ $90 | SER0 keyboard digital data
+ $91 | SER1 serial port 1 digital data
+ $92 | SER2 serial port 2 digital data
+ $93 | SER3 serial port 3 digital data
+ $94 | SER4 serial port 4 digital data
+ $95 | SER5 serial port 5 digital data
+ $96 | SER6 serial port 6 digital data
+ $97 | SER7 serial port 7 digital data
+ $98 | SERMODE serial port mode bits
      | - 0: serial
      | - 1: raw
- $91 | PTLATCH de-9 port latch
- $92 | PTSTAT parallel status
- $93 | PARINT parallel interrupts
- $94 | PT0 de-9 port 0 digital data
- $95 | PT1 de-9 port 1 digital data
- $96 | PT2 de-9 port 2 digital data
- $97 | PT3 de-9 port 3 digital data
- $98 | ANAP0 read analog from port 0
- $99 | ANAP1 read analog from port 1
- $9a | ANAP2 read analog from port 2
- $9b | ANAP3 read analog from port 3
+ $99 | SERLATCH serial port latch
+ $9a | PARSTAT parallel status
+ $9b | PARINT parallel interrupts
  $9e | BIOSSTAT read BIOS ROM data status
      | - $00: no data/busy
      | - $01: data available
@@ -101,15 +101,7 @@ addr | meaning
  $ad | parallel write 5
  $ae | parallel write 6
  $af | parallel write 7
- $b0 | PARSTAT parallel status 0
- $b1 | parallel status 1
- $b2 | parallel status 2
- $b3 | parallel status 3
- $b4 | parallel status 4
- $b5 | parallel status 5
- $b6 | parallel status 6
- $b7 | parallel status 7
- $c0 | EXTBUF 64-byte expansion port space
+ $c0 | EXT expansion port bus (64 bytes)
 
 then at $fe00 there is the initial system loader (ISL) on 256 bytes of ROM.
 this routine copies the BIOS ROM to RAM and jumps there.
@@ -157,7 +149,14 @@ id | description
 20 | video, vertical blank
 21 | video, vertical sync
 22 | video, scanline hit
-30 | input, keyboard
+30 | keyboard IRQ
+31 | serial 1 IRQ
+32 | serial 2 IRQ
+33 | serial 3 IRQ
+34 | serial 4 IRQ
+35 | serial 5 IRQ
+36 | serial 6 IRQ
+37 | serial 7 IRQ
 40 | parallel 0 IRQ
 41 | parallel 1 IRQ
 42 | parallel 2 IRQ
