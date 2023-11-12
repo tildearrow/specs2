@@ -73,6 +73,10 @@ void cuReset(s2CharUnit* cu, unsigned short toggle) {
   cu->vslatch=0;
   cu->divider=0;
   cu->toggle=toggle;
+  cu->pauseX=0;
+  cu->pauseY=0;
+  cu->textX=0;
+  cu->textY=0;
 }
 
 #define CU_USHORT(_x) (*((unsigned short*)(&cu->mem[_x])))
@@ -81,6 +85,8 @@ void cuReset(s2CharUnit* cu, unsigned short toggle) {
 
 unsigned short cuClockSync(s2CharUnit* cu) {
   if (cu->syncTrigger) {
+    cu->textY=0;
+    cu->charY=0;
     cu->syncTrigger=false;
   }
   if (cu->hmode) {
@@ -94,12 +100,25 @@ unsigned short cuClockActive(s2CharUnit* cu) {
   if (cu->syncTrigger) {
     cu->syncTrigger=false;
     cu->divider=0;
+    cu->textX=0;
+    cu->charX=0;
+    if (cu->pauseY>0) {
+      cu->pauseY--;
+    } else {
+      if (++cu->charY>CU_UCHAR(c_FLAGS&15)) {
+        cu->charY=0;
+        if (cu->textY<CU_UCHAR(c_TSIZEY)) cu->textY++;
+      }
+    }
   }
 
   if (cu->hmode==0) {
     return CU_SYNC;
   }
-  if (cu->hmode&2) return 0;
+  if (cu->hmode&2) {
+    cu->pauseX=CU_USHORT(c_TSCRX);
+    return 0;
+  }
 
   if (++cu->divider>(CU_UCHAR(c_VCTRL)&3)) {
     cu->divider=0;
@@ -110,15 +129,72 @@ unsigned short cuClockActive(s2CharUnit* cu) {
   cu->hpos++;
 
   // output next
-  return CU_COLOR(CU_UCHAR(c_COLBK));
+  if (cu->pauseY>0) {
+    return CU_COLOR(CU_UCHAR(c_COLBK));
+  }
 
-  return 0;
+  if (cu->pauseX>0) {
+    cu->pauseX--;
+    return CU_COLOR(CU_UCHAR(c_COLBK));
+  }
+
+  if (cu->textX<CU_USHORT(c_TSIZEX) && cu->textY<CU_USHORT(c_TSIZEY)) {
+    unsigned char out=CU_UCHAR(c_COLBK);
+    const unsigned short addr=(cu->textX|(cu->textY<<7))<<2;
+    const unsigned short chaddr=CU_USHORT(addr)&0x3fff;
+    const unsigned char chcol=CU_UCHAR(addr|2);
+    const unsigned char chbk=CU_UCHAR(addr|3);
+    if (CU_UCHAR(c_FLAGS)&16) {
+      if (chaddr<0x200) {
+        // RAM
+        const unsigned char ch=CU_UCHAR(((cu->charX&8)?0x7000:0x6000)|((chaddr&0xff)<<4)|(cu->charY&15));
+        if (ch&(1<<(cu->charX&7))) {
+          out=chcol;
+        } else if (chbk) {
+          out=chbk;
+        }
+      } else {
+        // character ROM (TODO)
+      }
+    } else {
+      if (chaddr<0x200) {
+        // RAM
+        const unsigned char ch=CU_UCHAR(0x6000|(chaddr<<4)|(cu->charY&15));
+        if (ch&(1<<cu->charX)) {
+          out=chcol;
+        } else if (chbk) {
+          out=chbk;
+        }
+      } else {
+        // character ROM (TODO)
+      }
+    }
+
+    if (CU_UCHAR(c_FLAGS)&16) {
+      if (++cu->charX>=16) {
+        cu->charX=0;
+        cu->textX++;
+      }
+    } else {
+      if (++cu->charX>=8) {
+        cu->charX=0;
+        cu->textX++;
+      }
+    }
+    return CU_COLOR(out);
+  }
+
+  return CU_COLOR(CU_UCHAR(c_COLBK));
 }
 
 unsigned short cuClockBlank(s2CharUnit* cu) {
   if (cu->syncTrigger) {
     cu->syncTrigger=false;
+    cu->textY=0;
+    cu->charY=0;
   }
+  cu->pauseY=CU_USHORT(c_TSCRY);
+  if (cu->pauseY==0) cu->charY=255;
   if (!cu->hmode) {
     if (cu->vmode==2) {
     }

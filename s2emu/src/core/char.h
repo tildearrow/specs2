@@ -27,7 +27,8 @@ typedef struct {
   unsigned char toggle;
 
   // character
-  signed char curRow, curCol;
+  unsigned char textX, textY;
+  unsigned char charX, charY;
   short pauseX, pauseY;
 
   unsigned short color[256];
