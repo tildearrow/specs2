@@ -101,11 +101,11 @@ unsigned short cuClockActive(s2CharUnit* cu) {
     cu->syncTrigger=false;
     cu->divider=0;
     cu->textX=0;
-    cu->charX=0;
+    cu->charX=7;
     if (cu->pauseY>0) {
       cu->pauseY--;
     } else {
-      if (++cu->charY>CU_UCHAR(c_FLAGS&15)) {
+      if (++cu->charY>(CU_UCHAR(c_FLAGS)&15)) {
         cu->charY=0;
         if (cu->textY<CU_UCHAR(c_TSIZEY)) cu->textY++;
       }
@@ -138,48 +138,27 @@ unsigned short cuClockActive(s2CharUnit* cu) {
     return CU_COLOR(CU_UCHAR(c_COLBK));
   }
 
-  if (cu->textX<CU_USHORT(c_TSIZEX) && cu->textY<CU_USHORT(c_TSIZEY)) {
+  if (cu->textX<CU_UCHAR(c_TSIZEX) && cu->textY<CU_UCHAR(c_TSIZEY)) {
     unsigned char out=CU_UCHAR(c_COLBK);
     const unsigned short addr=(cu->textX|(cu->textY<<7))<<2;
-    const unsigned short chaddr=CU_USHORT(addr)&0x3fff;
+    const unsigned short chaddr=CU_USHORT(addr)&0x1ff;
     const unsigned char chcol=CU_UCHAR(addr|2);
     const unsigned char chbk=CU_UCHAR(addr|3);
-    if (CU_UCHAR(c_FLAGS)&16) {
-      if (chaddr<0x200) {
-        // RAM
-        const unsigned char ch=CU_UCHAR(((cu->charX&8)?0x7000:0x6000)|((chaddr&0xff)<<4)|(cu->charY&15));
-        if (ch&(1<<(cu->charX&7))) {
-          out=chcol;
-        } else if (chbk) {
-          out=chbk;
-        }
-      } else {
-        // character ROM (TODO)
+    if (chaddr<0x200) {
+      // RAM
+      const unsigned char ch=CU_UCHAR(0x6000|(chaddr<<4)|(cu->charY&15));
+      if (ch&(1<<cu->charX)) {
+        out=chcol;
+      } else if (chbk) {
+        out=chbk;
       }
     } else {
-      if (chaddr<0x200) {
-        // RAM
-        const unsigned char ch=CU_UCHAR(0x6000|(chaddr<<4)|(cu->charY&15));
-        if (ch&(1<<cu->charX)) {
-          out=chcol;
-        } else if (chbk) {
-          out=chbk;
-        }
-      } else {
-        // character ROM (TODO)
-      }
+      // character ROM (TODO)
     }
 
-    if (CU_UCHAR(c_FLAGS)&16) {
-      if (++cu->charX>=16) {
-        cu->charX=0;
-        cu->textX++;
-      }
-    } else {
-      if (++cu->charX>=8) {
-        cu->charX=0;
-        cu->textX++;
-      }
+    if (--cu->charX>=8) {
+      cu->charX=7;
+      cu->textX++;
     }
     return CU_COLOR(out);
   }
@@ -212,6 +191,10 @@ unsigned short cuClock(s2CharUnit* cu) {
     if (!cu->initAddr) {
       // initialize video timings
       memcpy(cu->mem+0x5fe0,videoParams[cu->toggle&1][(cu->toggle&2)>>1],16);
+      // initialize other stuff
+      cu->mem[c_TSIZEX]=100;
+      cu->mem[c_TSIZEY]=30;
+      cu->mem[c_FLAGS]=15;
     }
     return CU_SYNC;
   }
