@@ -4,17 +4,17 @@ this is the memory map in unpaged state.
 
 addr    | meaning
 --------|-------------------
-$000000 | system RAM, up to 15.75MB
-$fc0000 | sound unit
-$fd0000 | video unit
+$000000 | system RAM, up to 15MB
+$f00000 | video unit
 $fe0000 | character unit
 $ff0000 | core
+$ffc000 | sound unit
 $ffffff | map density register
         | - writing to this register changes the map density which sets
         |   how many 64KB blocks will be available for hardware
         | - by using this setting it is possible to have access to 16MB
         |   of memory at the cost of being unable to access hardware
-        | - this register is set to $fc at power on
+        | - this register is set to $f0 at power on
         | - this register is hardwired to the core, and is always available
 
 ---boot routine---

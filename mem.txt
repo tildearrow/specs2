@@ -12,6 +12,14 @@ addr | meaning
  $00 | PAGE current page (0-3)
      | - page 0 maps to the kernel
      | - taRT uses page 1 for the real-time task
+ $08 | SUADDR Sound Unit address
+     | - when reading, bit 7 indicates "busy" status.
+ $09 | SUREAD Sound Unit read
+     | - after writing to SUADDR, read SUADDR until not busy.
+     | - then read this register.
+     | - if you want to read again, you'll have to wait on SUADDR again.
+     | - you must write to SUADDR again if you wrote to Sound Unit before!
+     | - otherwise it will use the address of the last write.
  $0e | EX exception code
  $0f | IRQ IRQ number
  $10 | TIM0-TIM7 32-bit timers (set)
@@ -102,6 +110,11 @@ addr | meaning
  $ae | parallel write 6
  $af | parallel write 7
  $c0 | EXT expansion port bus (64 bytes)
+
+these are mirrored until $f000.
+
+from $f000-$f0ff this is Sound Unit write data.
+after writing to one of these, you shall wait 25 core cycles before writing again!
 
 then at $fe00 there is the initial system loader (ISL) on 256 bytes of ROM.
 this routine copies the BIOS ROM to RAM and jumps there.

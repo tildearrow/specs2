@@ -10,7 +10,7 @@ the video chip provides the following capabilities:
 - bitmap mode
   - 2, 4, 16 and 256-color options
 - program processor for CPU-less register changes
-- up to 1MB of memory (program and tile/sprite may only use the first 64KB)
+- up to ~1MB of memory (program and tile/sprite may only use the first 64KB)
 
 here is some documentation for its usage.
 
@@ -21,6 +21,8 @@ addr | meaning
 -----|----------------------
  $00 | STATUS status
      | - bit 0: vblank
+ $01 | MEM total memory (<<12)
+     | - $0f: 64KB
  $02 | VPOS scanline
  $04 | HPOS pixel
  $06 | VBLCNT frame counter
