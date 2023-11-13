@@ -12,7 +12,7 @@ typedef struct {
   unsigned char y;
 } ReadySprite;
 
-typedef struct {
+struct s2VideoUnit {
   // internal counters
   unsigned int initAddr;
 
@@ -48,7 +48,9 @@ typedef struct {
   unsigned int memMask;
 
   unsigned short toggle;
-} s2VideoUnit;
+};
+
+typedef struct s2VideoUnit s2VideoUnit;
 
 void vuInit(s2VideoUnit* vu, unsigned int memCapacity);
 

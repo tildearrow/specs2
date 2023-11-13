@@ -27,7 +27,7 @@
 
 #include <stdbool.h>
 
-typedef struct {
+struct s2SoundUnit {
   signed char SCsine[256];
   signed char SCtriangle[256];
   signed char SCpantabL[256];
@@ -95,7 +95,9 @@ typedef struct {
   } chan[8];
   signed char* pcm;
   bool muted[8];
-} s2SoundUnit;
+};
+
+typedef struct s2SoundUnit s2SoundUnit;
 
 void suInit(s2SoundUnit* su, int sampleMemSize, bool dsOutMode);
 void suReset(s2SoundUnit* su);

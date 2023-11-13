@@ -6,7 +6,7 @@
 #define CU_SYNC 0x0010
 #define CU_HOLD 0x0200
 
-typedef struct {
+struct s2CharUnit {
   // internal counters
   unsigned int initAddr;
 
@@ -36,7 +36,9 @@ typedef struct {
   unsigned char* font;
 
   unsigned char* mem;
-} s2CharUnit;
+};
+
+typedef struct s2CharUnit s2CharUnit;
 
 void cuInit(s2CharUnit* cu);
 

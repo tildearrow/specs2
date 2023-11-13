@@ -3,7 +3,14 @@
 
 #include <stdbool.h>
 
+typedef struct s2CharUnit s2CharUnit;
+typedef struct s2VideoUnit s2VideoUnit;
+typedef struct s2SoundUnit s2SoundUnit;
+
 typedef struct {
+  s2CharUnit* charUnit;
+  s2VideoUnit* videoUnit;
+  s2SoundUnit* soundUnit;
   unsigned char* mem;
   unsigned int memCapacity;
   unsigned char* bios;
