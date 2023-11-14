@@ -23,6 +23,7 @@ void systemInit(s2System* sys, unsigned int memCapacity) {
   sys->videoOut=0;
 
   coreSetMemory(&sys->core,sys->memory,sys->memCapacity);
+  coreBind(&sys->core,&sys->cu,&sys->vu,&sys->su);
 
   printf("reading BIOS...\n");
   FILE* biosf=fopen("bios.bin","rb");

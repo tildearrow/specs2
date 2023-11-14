@@ -2,6 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include "core.h"
+#include "char.h"
+#include "video.h"
+#include "sound.h"
 
 const unsigned char s2ISL[]={
   0xe5,
@@ -37,6 +40,7 @@ void coreReset(s2Core* core) {
   core->ex=0;
   core->cpuClock=0;
   core->suClock=0;
+  core->suBusClock=0;
 
   core->clockCPU=false;
   core->clockSU=false;
@@ -44,6 +48,9 @@ void coreReset(s2Core* core) {
   // state
   core->biosPos=0;
   core->curPage=-1;
+  core->suData=0;
+  core->suAddr=0;
+  core->suNextOp=0;
 }
 
 void coreSetMemory(s2Core* core, unsigned char* memory, unsigned int capacity) {
@@ -56,12 +63,28 @@ void coreSetBIOS(s2Core* core, unsigned char* src, unsigned short len) {
   core->biosLen=len;
 }
 
+void coreBind(s2Core* core, s2CharUnit* cu, s2VideoUnit* vu, s2SoundUnit* su) {
+  core->charUnit=cu;
+  core->videoUnit=vu;
+  core->soundUnit=su;
+}
+
 void coreClock(s2Core* core) {
   if (++core->cpuClock>=5) {
     core->cpuClock=0;
     core->clockCPU=true;
   } else {
     core->clockCPU=false;
+  }
+  if (++core->suBusClock>=25) {
+    core->suBusClock=0;
+    if (core->suNextOp==2) {
+      suRead8(core->soundUnit,core->suAddr,&core->suData);
+      core->suNextOp=0;
+    } else if (core->suNextOp==1) {
+      suWrite8(core->soundUnit,core->suAddr,core->suData);
+      core->suNextOp=0;
+    }
   }
   if (++core->suClock>=100) {
     core->suClock=0;
@@ -158,6 +181,14 @@ bool coreRead8(s2Core* core, unsigned int addr, unsigned char* out) {
     return coreReadCtrl(core,addr,out);
   }
 
+  if (addr>=0xfe0000) { // char
+    return cuRead8(core->charUnit,addr,out);
+  }
+
+  if (addr>=0xf00000) { // video
+    return vuRead8(core->videoUnit,addr&0xfffff,out);
+  }
+
   if (addr>=core->memCapacity) {
     return false;
   }
@@ -175,6 +206,14 @@ bool coreRead16(s2Core* core, unsigned int addr, unsigned short* out) {
     if (!coreReadCtrl(core,addr,(unsigned char*)out)) return false;
     if (!coreReadCtrl(core,addr+1,(unsigned char*)out+1)) return false;
     return true;
+  }
+
+  if (addr>=0xfe0000) { // char
+    return cuRead16(core->charUnit,addr,out);
+  }
+
+  if (addr>=0xf00000) { // video
+    return vuRead16(core->videoUnit,addr&0xfffff,out);
   }
 
   if (addr>=core->memCapacity) {
@@ -196,6 +235,14 @@ bool coreRead32(s2Core* core, unsigned int addr, unsigned int* out) {
     if (!coreReadCtrl(core,addr+2,(unsigned char*)out+2)) return false;
     if (!coreReadCtrl(core,addr+3,(unsigned char*)out+3)) return false;
     return true;
+  }
+
+  if (addr>=0xfe0000) { // char
+    return cuRead32(core->charUnit,addr,out);
+  }
+
+  if (addr>=0xf00000) { // video
+    return vuRead32(core->videoUnit,addr&0xfffff,out);
   }
 
   if (addr>=core->memCapacity) {
@@ -227,6 +274,10 @@ bool coreReadIns(s2Core* core, unsigned int addr, unsigned char* out) {
     return true;
   }
 
+  if (addr>=0xf00000) {
+    return false;
+  }
+
   if ((addr+7)>=core->memCapacity) {
     return false;
   }
@@ -250,6 +301,14 @@ bool coreWrite8(s2Core* core, unsigned int addr, unsigned char val) {
     return coreWriteCtrl(core,addr,val);
   }
 
+  if (addr>=0xfe0000) { // char
+    return cuWrite8(core->charUnit,addr,val);
+  }
+
+  if (addr>=0xf00000) { // video
+    return vuWrite8(core->videoUnit,addr&0xfffff,val);
+  }
+
   if (addr>=core->memCapacity) {
     return false;
   }
@@ -267,6 +326,14 @@ bool coreWrite16(s2Core* core, unsigned int addr, unsigned short val) {
     if (!coreWriteCtrl(core,addr,val)) return false;
     if (!coreWriteCtrl(core,addr+1,val>>8)) return false;
     return true;
+  }
+
+  if (addr>=0xfe0000) { // char
+    return cuWrite16(core->charUnit,addr,val);
+  }
+
+  if (addr>=0xf00000) { // video
+    return vuWrite16(core->videoUnit,addr&0xfffff,val);
   }
 
   if ((addr+1)>=core->memCapacity) {
@@ -288,6 +355,14 @@ bool coreWrite32(s2Core* core, unsigned int addr, unsigned int val) {
     if (!coreWriteCtrl(core,addr+2,val>>16)) return false;
     if (!coreWriteCtrl(core,addr+3,val>>24)) return false;
     return true;
+  }
+
+  if (addr>=0xfe0000) { // char
+    return cuWrite32(core->charUnit,addr,val);
+  }
+
+  if (addr>=0xf00000) { // video
+    return vuWrite32(core->videoUnit,addr&0xfffff,val);
   }
 
   if ((addr+3)>=core->memCapacity) {

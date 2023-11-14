@@ -59,4 +59,11 @@ void vuReset(s2VideoUnit* vu, unsigned short toggle);
 // outputs a color. if chroma is -16, output sync signal.
 unsigned short vuClock(s2VideoUnit* vu);
 
+bool vuRead8(s2VideoUnit* vu, unsigned int addr, unsigned char* out);
+bool vuRead16(s2VideoUnit* vu, unsigned int addr, unsigned short* out);
+bool vuRead32(s2VideoUnit* vu, unsigned int addr, unsigned int* out);
+bool vuWrite8(s2VideoUnit* vu, unsigned int addr, unsigned char val);
+bool vuWrite16(s2VideoUnit* vu, unsigned int addr, unsigned short val);
+bool vuWrite32(s2VideoUnit* vu, unsigned int addr, unsigned int val);
+
 #endif

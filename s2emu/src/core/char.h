@@ -50,4 +50,11 @@ void cuReset(s2CharUnit* cu, unsigned short toggle);
 // outputs a color. if chroma is -16, output sync signal.
 unsigned short cuClock(s2CharUnit* cu);
 
+bool cuRead8(s2CharUnit* cu, unsigned short addr, unsigned char* out);
+bool cuRead16(s2CharUnit* cu, unsigned short addr, unsigned short* out);
+bool cuRead32(s2CharUnit* cu, unsigned short addr, unsigned int* out);
+bool cuWrite8(s2CharUnit* cu, unsigned short addr, unsigned char val);
+bool cuWrite16(s2CharUnit* cu, unsigned short addr, unsigned short val);
+bool cuWrite32(s2CharUnit* cu, unsigned short addr, unsigned int val);
+
 #endif
